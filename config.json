@@ -1,0 +1,26 @@
+{
+    "train": {
+        "img_folder": "/home/malek/Documents/CARLA/datasets/town01_1/rgb",
+        "controls_folder": "/home/malek/Documents/CARLA/datasets/town01_1/controls",
+        "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
+        "checkpoint_name": "DinoV2-NCP.pth",
+
+        "vision_backbone": "dino_v2",
+        "vision_pretrained": true,
+
+        "epochs": 20,
+        "seq_len": 10,
+        "batch_size": 4,
+        "lr_ncp": 0.001,
+        "lr_vision": 0.000025,        
+
+        "ncp_inputs": 32,
+        "ncp_neurons": 64,
+        "ncp_outputs": 3
+    },
+
+    "inference": {
+        "img_folder": "/path/to/inference/image/folder",
+        "controls_folder": "/path/to/inference/controls/folder"
+    }
+}

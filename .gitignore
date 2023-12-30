@@ -1,0 +1,9 @@
+# Ignore Python and VS Code cache
+__pycache__/
+.vscode/
+
+# Ignore pytorch model weights
+*.pth
+
+# Ignore training datasets
+datasets/
