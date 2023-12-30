@@ -1,12 +1,11 @@
 {
     "train": {
-        "img_folder": "/home/malek/Documents/CARLA/datasets/town01_1/rgb",
-        "controls_folder": "/home/malek/Documents/CARLA/datasets/town01_1/controls",
+        "datasets_path": "/home/malek/Documents/CARLA/datasets/",
+        "dataset_name": "town01_1",
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
         "checkpoint_name": "DinoV2-NCP.pth",
 
-        "vision_backbone": "dino_v2",
-        "vision_pretrained": true,
+        "vision_backbone": "dinov2",
 
         "epochs": 20,
         "seq_len": 10,
@@ -14,7 +13,7 @@
         "lr_ncp": 0.001,
         "lr_vision": 0.000025,        
 
-        "ncp_inputs": 32,
+        "ncp_inputs": 384,
         "ncp_neurons": 64,
         "ncp_outputs": 3
     },

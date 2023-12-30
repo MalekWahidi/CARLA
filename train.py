@@ -29,7 +29,7 @@ def train(perception_model, cfc_model, criterion, optimizer, trainloader, num_ep
         pbar = tqdm(total=len(trainloader), desc=f"Epoch {epoch+1}/{num_epochs}")
 
         for i, (inputs, labels) in enumerate(trainloader):
-            inputs, labels = inputs.float().to(device), labels.float().to(device)
+            inputs, labels = inputs.float().cuda(non_blocking=True) , labels.float().cuda(non_blocking=True) 
 
             # Reset gradients and hidden state for next iteration
             optimizer.zero_grad()
@@ -65,40 +65,62 @@ if __name__ == "__main__":
     config_path = 'config.json'
     config = load_config(config_path)['train']
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Model checkpoint save path
     checkpoint_folder = config['checkpoint_folder']
     checkpoint_name = config['checkpoint_name']
     checkpoint_path = os.path.join(checkpoint_folder, checkpoint_name)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    print(f"Training".center(50, "="))
-    print(f"Vision Backbone: {config['vision_backbone']}")
-    print(f"Pretrained: {config['pretrained']}")
-    print(f"Epochs: {config['epochs']}")
-    print(f"Learning rate (NCP): {config['lr_ncp']}")
-    if not config['pretrained']:
-        print(f"Learning rate (vision backbone): {config['lr_vision']}")
-    print(f"Batch size: {config['batch_size']}")
-    print(f"Sequence length: {config['seq_len']}")
-    print(f"Device: {device}")
-    print()
-
-    # Create dataset and dataloader
-    dataset = CarlaDataset(config['img_folder'], config['controls_folder'], config['seq_len'])
-    dataloader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=False, num_workers=4)
-    
-    print(f"Training samples: {len(dataset)} frames")
-
     # Select the perception model
-    if config['vision_backbone'] == 'conv':
-        perception_model = ConvHead(n_features=config['ncp_inputs'])
+    pretrained = False
+    if config['vision_backbone'] == 'cnn':
+        perception_model = ConvHead(n_features=config['ncp_inputs']).to(device)
+        pretrained = False
     elif config['vision_backbone'] == 'dinov2':
         perception_model = DinoV2()
         pretrained = True
+    else:
+        print(f"Perception model {config['vision_backbone']} not found!")
 
-    # Move model to GPU
-    perception_model = perception_model.to(device)
+    # Dataset paths
+    datasets_path = config['datasets_path']
+    dataset_name = config['dataset_name']
+    img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
+    controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
+
+    # Create dataset and dataloader
+    dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'])
+    dataloader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=False, num_workers=4, pin_memory=True)
+    
+    # Display all training details
+    print(f"Training".center(50, "="))
+    print()
+    print(f"Model Architecture".center(50, "="))
+    print(f"Vision Backbone: {config['vision_backbone']}")
+    print(f"Pretrained: {pretrained}")
+    print(f"")
+    print(f"Training Hyperparameters".center(50, "="))
+    print(f"Epochs: {config['epochs']}")
+    print(f"Learning rate (NCP): {config['lr_ncp']}")
+    if not pretrained:
+        print(f"Learning rate (vision backbone): {config['lr_vision']}")
+    print(f"Batch size: {config['batch_size']}")
+    print(f"Sequence length: {config['seq_len']}")
+    print()
+    print(f"Hardware Specs".center(50, "="))
+    if device.type == 'cuda':
+        print(f"Device: GPU")
+        device_id = torch.cuda.current_device()
+        print(f"Name: {torch.cuda.get_device_name(device_id)}")
+        print(f"Memory: {torch.cuda.get_device_properties(device_id).total_memory / (1024 ** 3):.2f} GB")
+    else:
+        print(f"Device: CPU")
+    print()
+    print(f"Dataset Details".center(50, "="))
+    print(f"Dataset: {config['dataset_name']}")
+    print(f"Size: {len(dataset)} frames")
+    print()
 
     # Instantiate the CfC RNN model with appropriate dimensions
     cfc_model = NCP_CfC(config['ncp_inputs'], config['ncp_neurons'], config['ncp_outputs']).to(device)
@@ -123,4 +145,4 @@ if __name__ == "__main__":
     loss_fn = nn.MSELoss()
     optimizer = optim.Adam(optimizer_params)
 
-    train(perception_model, cfc_model, loss_fn, optimizer, dataloader, config['epochs'], checkpoint_path, config['pretrained'], device)
+    train(perception_model, cfc_model, loss_fn, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, device)
