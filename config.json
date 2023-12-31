@@ -6,15 +6,15 @@
         "checkpoint_name": "DinoV2-NCP.pth",
 
         "vision_backbone": "dinov2",
+        "wandb": true,
 
         "epochs": 20,
         "seq_len": 10,
         "batch_size": 4,
-        "lr_ncp": 0.001,
-        "lr_vision": 0.000025,        
+        "lr_ncp": 0.001,      
 
         "ncp_inputs": 384,
-        "ncp_neurons": 40,
+        "ncp_neurons": 32,
         "ncp_outputs": 3
     },
 

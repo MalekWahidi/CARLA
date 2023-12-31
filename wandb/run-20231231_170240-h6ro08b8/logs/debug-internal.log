@@ -1984,3 +1984,8 @@ FileNotFoundError: [Errno 2] No such file or directory: 'conda'
 2023-12-31 17:04:10,209 INFO    SenderThread:56972 [file_pusher.py:finish():175] shutting down file pusher
 2023-12-31 17:04:10,209 INFO    SenderThread:56972 [file_pusher.py:join():181] waiting for file pusher
 2023-12-31 17:04:10,639 INFO    HandlerThread:56972 [handler.py:finish():866] shutting down handler
+2023-12-31 17:04:23,014 INFO    wandb-upload_3:56972 [upload_job.py:push():131] Uploaded file /home/malek/Documents/CARLA/wandb/run-20231231_170240-h6ro08b8/files/output.log
+2023-12-31 17:04:23,223 INFO    wandb-upload_2:56972 [upload_job.py:push():131] Uploaded file /home/malek/Documents/CARLA/wandb/run-20231231_170240-h6ro08b8/files/requirements.txt
+2023-12-31 17:04:23,424 INFO    Thread-11 :56972 [sender.py:transition_state():617] send defer: 11
+2023-12-31 17:04:23,727 INFO    SenderThread:56972 [file_stream.py:finish():595] file stream finish called
+2023-12-31 17:04:23,991 INFO    SenderThread:56972 [file_stream.py:finish():599] file stream finish is done

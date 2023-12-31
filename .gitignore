@@ -7,3 +7,6 @@ __pycache__/
 
 # Ignore training datasets
 datasets/
+
+# Ignore Weights & Biases logs
+wandb/
