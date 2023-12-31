@@ -8,25 +8,15 @@ import numpy as np
 
 import carla
 
-# Simulation parameters
-NUM_CARS = 120
-NUM_PED = 0
-TIME_STEPS = 36000
+from utils.utils import load_config
 
-# Camera parameters
-CAM_WIDTH = 640
-CAM_HEIGHT = 360
 
-# Data folders
-img_folder = "/home/malek/Documents/CARLA/datasets/autopilot_town01_2/rgb"
-controls_folder = "/home/malek/Documents/CARLA/datasets/autopilot_town01_2/controls"
-
-def process_img(img):
+def process_img(img, cam_w, cam_h):
     # Convert raw image to int8 numpy array
     img = np.frombuffer(img.raw_data, dtype=np.uint8)
 
     # Reshape into a 2D RGBA image
-    img = img.reshape((CAM_HEIGHT, CAM_WIDTH, 4))
+    img = img.reshape((cam_h, cam_w, 4))
 
     # Visualize
     cv2.imshow("Camera View", img)
@@ -37,7 +27,7 @@ def process_img(img):
 
     return img
 
-def save_image(counter, img):
+def save_image(counter, img, img_folder):
     # Preprocess raw image data for model training
     img = process_img(img)
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
@@ -45,6 +35,9 @@ def save_image(counter, img):
 
 def run_simulation():
     try:
+        config_path = 'config.json'
+        config = load_config(config_path)['CARLA']
+
         actors = [] # Keep track of all simulated actors for cleanup
         control_data = [] # Store all outputs controls for training dataset
 
@@ -61,16 +54,16 @@ def run_simulation():
         # Set everything to sync mode
         settings = world.get_settings()
         settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 0.05 # 20 FPS
+        settings.fixed_delta_seconds = config["time_step"]
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
 
         # Store all spawn points available for this map
         spawn_points = m.get_spawn_points()
 
-        print(f"Spawning {NUM_CARS} NPC vehicles...")
         # Spawn NPC vehicles at random locations and set to autopilot
-        for _ in range(NUM_CARS):
+        print(f"Spawning {config['num_cars']} NPC vehicles...")
+        for _ in range(config["num_cars"]):
             npc_bp = random.choice(bp.filter('vehicle.*'))
             spawn_point = random.choice(spawn_points)
             npc = world.try_spawn_actor(npc_bp, spawn_point)
@@ -103,8 +96,8 @@ def run_simulation():
         #         controller.go_to_location(world.get_random_location_from_navigation())
         #         controller.set_max_speed(1 + random.random())
 
-        print("Spawning ego car...")
         # Spawn main agents vehicle and set to autopilot
+        print("Spawning ego car...")
         ego_bp = bp.filter("model3")[0]
         ego_bp.set_attribute('role_name','ego')
         spawn_point = random.choice(spawn_points)
@@ -120,9 +113,9 @@ def run_simulation():
             
         print("Spawning ego camera...")
         cam_bp = bp.find('sensor.camera.rgb')
-        cam_bp.set_attribute('image_size_x', str(CAM_WIDTH))
-        cam_bp.set_attribute('image_size_y', str(CAM_HEIGHT))
-        cam_bp.set_attribute('fov', '110')
+        cam_bp.set_attribute('image_size_x', config["cam_w"])
+        cam_bp.set_attribute('image_size_y', config["cam_h"])
+        cam_bp.set_attribute('fov', config["cam_fov"])
 
         spawn_point = carla.Transform(carla.Location(x=1.25, y=0, z=1.1))
         ego_cam = world.try_spawn_actor(cam_bp, spawn_point, attach_to=ego_car)
@@ -131,19 +124,21 @@ def run_simulation():
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
 
-        for _ in tqdm(range(TIME_STEPS), desc="Collecting Data", unit="frame"):
+        for _ in tqdm(range(config["max_steps"]), desc="Collecting Data", unit="frame"):
             world.tick()
             
             # Process image frame and save as PNG
-            process_img(image_queue.get())
+            process_img(image_queue.get(), config["cam_w"], config["cam_h"])
 
             # Collect output control data for training supervision
             controls = ego_car.get_control()
             outputs = [controls.steer, controls.throttle, controls.brake]
             control_data.append(outputs)
+
+        controls_path = os.path.join(config["datasets_path"], config["dataset_name"], "controls")
         
         # Save all control data to a single npy file at the end
-        np.save(f"{controls_folder}/all_controls.npy", control_data)
+        np.save(f"{controls_path}/all_controls.npy", control_data)
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -160,13 +155,6 @@ def run_simulation():
 
         # Destroy all actors in the simulation
         client.apply_batch([carla.command.DestroyActor(a) for a in actors])
-
-        # # stop pedestrians (list is [controller, actor, controller, actor ...])
-        # for i in range(0, len(all_id), 2):
-        #     all_actors[i].stop()
-
-        # # destroy pedestrian (actor and controller)
-        # client.apply_batch([carla.command.DestroyActor(x) for x in all_id])
 
         print('Done.')
 

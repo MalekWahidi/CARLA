@@ -1,0 +1,157 @@
+Using cache found in /home/malek/.cache/torch/hub/facebookresearch_dinov2_main
+Epoch 1/20:   0%|                                                                            | 0/2998 [00:00<?, ?it/s]
+=====================Training=====================
+================Model Architecture================
+Vision Backbone: dinov2
+Pretrained: True
+NCP: [384, 40, 3]
+=============Training Hyperparameters=============
+Epochs: 20
+Learning rate (NCP): 0.001
+Batch size: 4
+Sequence length: 10
+==================Hardware Specs==================
+Device: GPU
+Name: NVIDIA GeForce RTX 4060 Laptop GPU
+Memory: 7.75 GB
+=================Dataset Details==================
+Dataset: town01_1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Epoch 1 - Loss: 0.050943:  41%|████████████████████▉                              | 1228/2998 [03:39<11:42,  2.52it/s]Traceback (most recent call last):
+  File "/home/malek/Documents/CARLA/train.py", line 214, in <module>
+    train(perception_model, ncp_model, loss_fn, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, device)
+  File "/home/malek/Documents/CARLA/train.py", line 77, in train
+    features = perception_model(inputs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/malek/Documents/CARLA/models/perception/DinoV2.py", line 26, in forward
+    outputs = self.model(x)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/models/vision_transformer.py", line 321, in forward
+    ret = self.forward_features(*args, **kwargs)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/models/vision_transformer.py", line 257, in forward_features
+    x = blk(x)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py", line 254, in forward
+    return super().forward(x_or_x_list)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py", line 112, in forward
+    x = x + attn_residual_func(x)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py", line 91, in attn_residual_func
+    return self.ls1(self.attn(self.norm1(x)))
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1527, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/malek/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py", line 88, in forward
+    x = self.proj_drop(x)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1682, in __getattr__
+    def __getattr__(self, name: str) -> Any:
+KeyboardInterrupt

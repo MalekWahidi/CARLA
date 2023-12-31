@@ -1,3 +1,4 @@
+import os
 import carla
 import queue
 import random
@@ -8,22 +9,17 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from models.ncp.NCP import ConvCfC
+from models.ncp.NCP import NCP_CfC
 
-# Simulation parameters
-NUM_CARS = 10
-NUM_PED = 0
+from utils.utils import load_config
 
-# Camera parameters
-CAM_WIDTH = 640
-CAM_HEIGHT = 360
 
-def process_img(img):
+def process_img(img, cam_w, cam_h):
     # Convert raw image to int8 numpy array
     img = np.frombuffer(img.raw_data, dtype=np.uint8)
 
     # Reshape into a 2D RGBA image
-    img = img.reshape((CAM_HEIGHT, CAM_WIDTH, 4))
+    img = img.reshape((cam_h, cam_w, 4))
 
     # Visualize
     cv2.imshow("Camera View", img)
@@ -44,23 +40,27 @@ def process_img(img):
     return img
 
 
-def run_closed_loop(model_path):
+def run_closed_loop():
     try:
+        config_path = 'config.json'
+        config = load_config(config_path)['CARLA']
+
+        model_path = os.path.join(config["checkpoint_folder"], config["checkpoint_name"])
+        
         actors = [] # Keep track of all simulated actors for cleanup
 
         # Initialize CARLA client
         client = carla.Client('localhost', 2000)
         client.set_timeout(2.0)
 
-        # Load trained model
-        model = ConvCfC(n_actions=3)
-        model.load_state_dict(torch.load(model_path))
-        model.eval()
+        # Load trained model to GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.to(device)
-        hx = None
+        model = NCP_CfC(n_actions=3)
+        model.load_state_dict(torch.load(model_path))
+        model = torch.compile(model, mode="max-autotune")
+        model.eval().to(device)
         
-        # Initialize the world, blueprint, map, and traffic manager objects
+        # Initialize world, blueprint, map, and traffic manager objects
         world = client.get_world()
         bp = world.get_blueprint_library()
         m = world.get_map()
@@ -69,16 +69,16 @@ def run_closed_loop(model_path):
         # Set everything to sync mode
         settings = world.get_settings()
         settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 0.05 # 20 FPS
+        settings.fixed_delta_seconds = config["time_step"] # 20 FPS
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
 
         # Store all spawn points available for this map
         spawn_points = m.get_spawn_points()
 
-        print(f"Spawning {NUM_CARS} NPC vehicles...")
+        print(f"Spawning {config['num_cars']} NPC vehicles...")
         # Spawn NPC vehicles at random locations and set to autopilot
-        for _ in range(NUM_CARS):
+        for _ in range(config["num_cars"]):
             npc_bp = random.choice(bp.filter('vehicle.*'))
             spawn_point = random.choice(spawn_points)
             npc = world.try_spawn_actor(npc_bp, spawn_point)
@@ -87,8 +87,8 @@ def run_closed_loop(model_path):
                 npc.set_autopilot(True)
                 actors.append(npc)
 
+        # Spawn ego car (AI-controlled)
         print("Spawning ego car...")
-        # Spawn main agents vehicle and set to autopilot
         ego_bp = bp.filter("model3")[0]
         ego_bp.set_attribute('role_name','ego')
         spawn_point = random.choice(spawn_points)
@@ -98,27 +98,33 @@ def run_closed_loop(model_path):
             ego_car = world.try_spawn_actor(ego_bp, spawn_point)
             if ego_car:
                 break
-        ego_car.set_autopilot(True)
+
+        # ego_car.set_autopilot(True)
         actors.append(ego_car)
             
+        # Spawn front-facing rgb camera on ego car hood
         print("Spawning ego camera...")
         cam_bp = bp.find('sensor.camera.rgb')
-        cam_bp.set_attribute('image_size_x', str(CAM_WIDTH))
-        cam_bp.set_attribute('image_size_y', str(CAM_HEIGHT))
-        cam_bp.set_attribute('fov', '110')
+        cam_bp.set_attribute('image_size_x', config["cam_w"])
+        cam_bp.set_attribute('image_size_y', config["cam_h"])
+        cam_bp.set_attribute('fov', config["cam_fov"])
 
-        spawn_point = carla.Transform(carla.Location(x=1.25, y=0, z=1.1))
+        spawn_point = carla.Transform(carla.Location(x=config["cam_x"], y=config["cam_y"], z=config["cam_z"]))
         ego_cam = world.try_spawn_actor(cam_bp, spawn_point, attach_to=ego_car)
         actors.append(ego_cam)
 
+        # Synchronous mode requires queueing images from the camera
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
+
+        # Initialize NCP hidden state
+        hx = None
 
         while True:
             world.tick()
 
             # Preprocess image for model input and move to GPU
-            img = process_img(image_queue.get()).to(device)
+            img = process_img(image_queue.get(), config["cam_w"], config["cam_h"]).to(device)
 
             # Model inference
             with torch.no_grad():
@@ -158,5 +164,4 @@ def run_closed_loop(model_path):
 
 
 if __name__ == '__main__':
-    model_path = '/home/malek/Documents/CARLA/weights/e2e/ConvCfC.pth'
-    run_closed_loop(model_path)
+    run_closed_loop()

@@ -25,8 +25,11 @@ class CarlaDataset(Dataset):
             self.transform = transforms.ToTensor()
 
     def __len__(self):
-        # Adjust to ensure only complete sequences are included
+        # Return number of complete sequences
         return len(self.controls) - (self.sequence_length - 1)
+    
+    def size(self):
+        return len(self.controls)
 
     def __getitem__(self, idx):
         images = []
@@ -39,5 +42,4 @@ class CarlaDataset(Dataset):
             images.append(image)
 
         images = torch.stack(images)
-
         return images, controls

@@ -1,0 +1,35 @@
+Using cache found in /home/malek/.cache/torch/hub/facebookresearch_dinov2_main
+Epoch 1/20:   0%|                                                                            | 0/2998 [00:00<?, ?it/s]
+=====================Training=====================
+================Model Architecture================
+Vision Backbone: dinov2
+Pretrained: True
+NCP: [384, 40, 3]
+=============Training Hyperparameters=============
+Epochs: 20
+Learning rate (NCP): 0.001
+Batch size: 4
+Sequence length: 10
+==================Hardware Specs==================
+Device: GPU
+Name: NVIDIA GeForce RTX 4060 Laptop GPU
+Memory: 7.75 GB
+=================Dataset Details==================
+Dataset: town01_1
+
+
+
+Epoch 1 - Loss: 0.100104:   1%|▋                                                    | 39/2998 [00:04<05:08,  9.60it/s]Traceback (most recent call last):
+  File "/home/malek/Documents/CARLA/train.py", line 214, in <module>
+    train(perception_model, ncp_model, loss_fn, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, device)
+  File "/home/malek/Documents/CARLA/train.py", line 78, in train
+    outputs, _ = ncp_model(features)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1518, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1581, in _call_impl
+    hook_result = hook(self, args, result)
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/wandb/wandb_torch.py", line 110, in <lambda>
+    lambda mod, inp, outp: parameter_log_hook(
+  File "/home/malek/anaconda3/envs/carla/lib/python3.8/site-packages/wandb/wandb_torch.py", line 105, in parameter_log_hook
+    self.log_tensor_stats(data.cpu(), "parameters/" + prefix + name)
+KeyboardInterrupt
