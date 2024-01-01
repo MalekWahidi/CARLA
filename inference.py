@@ -2,6 +2,7 @@ import os
 import carla
 import queue
 import random
+import warnings
 
 import cv2
 import numpy as np
@@ -10,8 +11,31 @@ import torch
 from torchvision import transforms
 
 from models.ncp.NCP import NCP_CfC
+from models.perception.DinoV2 import DinoV2
 
 from utils.utils import load_config
+
+# Ignore specific warnings
+warnings.filterwarnings("ignore", message="xFormers is available")
+
+
+def load_models(checkpoint_path, device):
+    # Initialize the models
+    perception_model = DinoV2().to(device)
+    ncp_model = NCP_CfC(384, 32, 3).to(device)
+
+    # Load the combined checkpoint
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+
+    # Load state dictionaries into the respective models
+    perception_model.load_state_dict(checkpoint['perception_model'])
+    ncp_model.load_state_dict(checkpoint['ncp_model'])
+
+    # Set models to evaluation mode
+    perception_model.eval()
+    ncp_model.eval()
+
+    return perception_model, ncp_model
 
 
 def process_img(img, cam_w, cam_h):
@@ -55,10 +79,8 @@ def run_closed_loop():
 
         # Load trained model to GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = NCP_CfC(n_actions=3)
-        model.load_state_dict(torch.load(model_path))
-        model = torch.compile(model, mode="max-autotune")
-        model.eval().to(device)
+
+        perception_model, ncp_model = load_models(model_path, device)
         
         # Initialize world, blueprint, map, and traffic manager objects
         world = client.get_world()
@@ -69,7 +91,7 @@ def run_closed_loop():
         # Set everything to sync mode
         settings = world.get_settings()
         settings.synchronous_mode = True
-        settings.fixed_delta_seconds = config["time_step"] # 20 FPS
+        settings.fixed_delta_seconds = config["time_step"]
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
 
@@ -124,11 +146,12 @@ def run_closed_loop():
             world.tick()
 
             # Preprocess image for model input and move to GPU
-            img = process_img(image_queue.get(), config["cam_w"], config["cam_h"]).to(device)
+            img = process_img(image_queue.get(), int(config["cam_w"]), int(config["cam_h"])).to(device)
 
             # Model inference
             with torch.no_grad():
-                controls, hx = model(img, hx)
+                features = perception_model(img)
+                controls, hx = ncp_model(features, hx)
 
             # Remove batch and time dimensions
             controls = controls.squeeze(0).squeeze(0).cpu().numpy()
@@ -136,7 +159,7 @@ def run_closed_loop():
             steer, throttle, brake = controls
             brake = 0
 
-            print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}")
+            print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
 
             # Apply model output to control the ego car
             control_command = carla.VehicleControl(steer=float(steer),

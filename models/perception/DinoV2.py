@@ -28,4 +28,3 @@ class DinoV2(nn.Module):
         outputs = outputs.view(batch_size, seq_len, -1)
 
         return outputs
-

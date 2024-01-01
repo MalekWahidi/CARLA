@@ -30,8 +30,8 @@
         "num_ped": 10,
         "num_cars": 100,
 
-        "cam_w": "640",
-        "cam_h": "360",
+        "cam_w": "224",
+        "cam_h": "224",
         "cam_fov": "110",
         "cam_x": 1.25,
         "cam_y": 0,
