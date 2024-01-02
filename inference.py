@@ -19,10 +19,10 @@ from utils.utils import load_config
 warnings.filterwarnings("ignore", message="xFormers is available")
 
 
-def load_models(checkpoint_path, device):
+def load_models(checkpoint_path, device, config):
     # Initialize the models
     perception_model = DinoV2().to(device)
-    ncp_model = NCP_CfC(384, 32, 3).to(device)
+    ncp_model = NCP_CfC(config['ncp_inputs'], config['ncp_neurons'], config['ncp_outputs']).to(device)
 
     # Load the combined checkpoint
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -67,7 +67,7 @@ def process_img(img, cam_w, cam_h):
 def run_closed_loop():
     try:
         config_path = 'config.json'
-        config = load_config(config_path)['CARLA']
+        config = load_config(config_path)['inference']
 
         model_path = os.path.join(config["checkpoint_folder"], config["checkpoint_name"])
         
@@ -80,7 +80,7 @@ def run_closed_loop():
         # Load trained model to GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        perception_model, ncp_model = load_models(model_path, device)
+        perception_model, ncp_model = load_models(model_path, device, config)
         
         # Initialize world, blueprint, map, and traffic manager objects
         world = client.get_world()

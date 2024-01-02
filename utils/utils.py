@@ -1,4 +1,6 @@
 import json
+import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 
 # Load config json file
@@ -36,3 +38,26 @@ def visualize_sequence(batch_size, sequence_length, inputs):
 
     plt.tight_layout()
     plt.show()
+
+# Exponential weighted MSE loss to weight high steering/braking scenarios more heavily
+def exponential_weighted_mse_loss(outputs, labels, alpha_steering=2, alpha_braking=2, alpha_throttle=1):
+    loss_fn = nn.L1Loss()
+    
+    mse_loss = loss_fn(outputs, labels)
+
+    # Calculate the weighting factors for steering and braking
+    weights_steering = torch.exp(torch.abs(labels[:, 0]) ** alpha_steering)
+    weights_braking = torch.exp(labels[:, 2] ** alpha_braking)
+
+    # Apply weights to steering and braking losses
+    steering_loss = mse_loss[:, 0] * weights_steering
+    braking_loss = mse_loss[:, 2] * weights_braking
+
+    # Throttle loss
+    throttle_loss = mse_loss[:, 1] * alpha_throttle
+
+    # Combine the losses
+    combined_loss = steering_loss + braking_loss + throttle_loss
+
+    # Return the mean of the combined loss
+    return combined_loss.mean()

@@ -13,23 +13,28 @@ from torch.utils.data import DataLoader
 from models.ncp.NCP import NCP_CfC
 from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
+from models.perception.VC1 import VC1
 
-from utils.utils import load_config, visualize_sequence
+from utils.utils import load_config, visualize_sequence, exponential_weighted_mse_loss
 from data_utils.carla_dataloader import CarlaDataset
 
 # Ignore specific warnings
 warnings.filterwarnings("ignore", message="xFormers is available")
 
+# Suppress specific UserWarning from torchvision
+warnings.filterwarnings('ignore', category=UserWarning, module='torchvision.transforms.functional')
+
 # Pytorch optimizations
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.benchmark = True
 
-def train(perception_model, ncp_model, criterion, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, device):
+def train(perception_model, ncp_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, device):
     if not pretrained:
         perception_model.train()
 
     ncp_model.train()
     running_loss = 0.0
+    criterion = nn.L1Loss()
 
     for epoch in range(num_epochs):
         pbar = tqdm(total=len(trainloader), desc=f"Epoch {epoch+1}/{num_epochs}")
@@ -48,9 +53,11 @@ def train(perception_model, ncp_model, criterion, optimizer, trainloader, num_ep
             outputs, _ = ncp_model(features)
 
             # Backprop
+            # loss = exponential_weighted_mse_loss(outputs, labels)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+
             running_loss += loss.item()
 
             if wandb_enable:
@@ -61,7 +68,7 @@ def train(perception_model, ncp_model, criterion, optimizer, trainloader, num_ep
                 }, commit=False)  # Delay logging until all items are ready
 
             # Update progress bar
-            pbar.set_description(f"Epoch {epoch+1} - Loss: {running_loss / (i + 1):.6f}")
+            pbar.set_description(f"Epoch {epoch+1} - Running Average Loss: {running_loss / (i + 1):.4f}")
             pbar.update(1)
 
         if wandb_enable:
@@ -72,7 +79,7 @@ def train(perception_model, ncp_model, criterion, optimizer, trainloader, num_ep
                 "epoch": epoch
             })
 
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 5 == 0:
             # Save combined model state (end-to-end perception+NCP)
             combined_state = {
                 'perception_model': perception_model.state_dict(),
@@ -113,11 +120,17 @@ if __name__ == "__main__":
     if config['vision_backbone'] == 'cnn':
         perception_model = ConvHead(n_features=config['ncp_inputs']).to(device)
         pretrained = False
+        config["ncp_inputs"] = 64
     elif config['vision_backbone'] == 'dinov2':
         perception_model = DinoV2()
         pretrained = True
+        config["ncp_inputs"] = 384
+    elif config['vision_backbone'] == 'vc1':
+        perception_model = VC1()
+        pretrained = True
+        config["ncp_inputs"] = 768
     else:
-        print(f"Perception model {config['vision_backbone']} not found!")
+        print(f"Perception model '{config['vision_backbone']}' not found!")
 
     # Dataset paths
     datasets_path = config['datasets_path']
@@ -187,7 +200,6 @@ if __name__ == "__main__":
             {'params': ncp_model.parameters(), 'lr': config['lr_ncp']}
         ]
 
-    loss_fn = nn.MSELoss()
     optimizer = optim.Adam(optimizer_params)
 
-    train(perception_model, ncp_model, loss_fn, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], device)
+    train(perception_model, ncp_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], device)

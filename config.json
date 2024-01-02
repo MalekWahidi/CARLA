@@ -3,22 +3,43 @@
         "datasets_path": "/home/malek/Documents/CARLA/datasets/",
         "dataset_name": "town01_1",
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "DinoV2-NCP.pth",
+        "checkpoint_name": "VC1-NCP-(MAE).pth",
 
-        "vision_backbone": "dinov2",
-        "wandb": true,
+        "vision_backbone": "vc1",
+        "wandb": false,
 
-        "epochs": 20,
+        "epochs": 50,
         "seq_len": 10,
         "batch_size": 4,
-        "lr_ncp": 0.001,      
+        "lr_ncp": 0.005,      
+
+        "ncp_inputs": 784,
+        "ncp_neurons": 32,
+        "ncp_outputs": 3
+    },
+
+    "inference": {
+        "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
+        "checkpoint_name": "DinoV2-NCP.pth",
+
+        "time_step": 0.05,
+
+        "num_ped": 0,
+        "num_cars": 200,
+
+        "cam_w": "518",
+        "cam_h": "518",
+        "cam_fov": "110",
+        "cam_x": 1.25,
+        "cam_y": 0,
+        "cam_z": 1.1,
 
         "ncp_inputs": 384,
         "ncp_neurons": 32,
         "ncp_outputs": 3
     },
 
-    "CARLA": {
+    "data_collection": {
         "datasets_path": "/home/malek/Documents/CARLA/datasets/",
         "dataset_name": "town01_2",
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
@@ -27,7 +48,7 @@
         "time_step": 0.05,
         "max_steps": 36000,
 
-        "num_ped": 10,
+        "num_ped": 0,
         "num_cars": 100,
 
         "cam_w": "224",
@@ -35,8 +56,6 @@
         "cam_fov": "110",
         "cam_x": 1.25,
         "cam_y": 0,
-        "cam_z": 1.1,
-
-        "ncp_outputs": 3
+        "cam_z": 1.1
     }
 }
