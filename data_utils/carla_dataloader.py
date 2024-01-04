@@ -29,17 +29,23 @@ class CarlaDataset(Dataset):
         return len(self.controls) - (self.sequence_length - 1)
     
     def size(self):
+        # Return full number of samples
         return len(self.controls)
 
     def __getitem__(self, idx):
         images = []
-        controls = self.controls[idx:idx + self.sequence_length]
 
+        # Get consecutive sequence of controls
+        controls = self.controls[idx : idx + self.sequence_length]
+
+        # Get consecutive sequence of images and apply transformations
         for i in range(self.sequence_length):
             img_path = self.img_files[idx + i]
             image = Image.open(img_path).convert('RGB')
             image = self.transform(image)
             images.append(image)
 
+        # Stack images in a sequence
         images = torch.stack(images)
+
         return images, controls

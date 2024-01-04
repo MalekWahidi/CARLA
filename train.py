@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     # Initialize wandb
     if config['wandb']:
-        wandb.init(project="CARLA", name="NCP-DinoV2")
+        wandb.init(project="CARLA", name=config["checkpoint_name"].split(".")[0])
 
     # Model checkpoint save path
     checkpoint_folder = config['checkpoint_folder']

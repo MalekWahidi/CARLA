@@ -6,21 +6,21 @@
         "checkpoint_name": "VC1-NCP-(MAE).pth",
 
         "vision_backbone": "vc1",
-        "wandb": false,
+        "wandb": true,
 
-        "epochs": 50,
+        "epochs": 100,
         "seq_len": 10,
         "batch_size": 4,
-        "lr_ncp": 0.005,      
+        "lr_ncp": 0.01,  
 
-        "ncp_inputs": 784,
-        "ncp_neurons": 32,
+        "ncp_inputs": 768,
+        "ncp_neurons": 100,
         "ncp_outputs": 3
     },
 
     "inference": {
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "DinoV2-NCP.pth",
+        "checkpoint_name": "VC1-NCP-(MAE).pth",
 
         "time_step": 0.05,
 
@@ -34,7 +34,7 @@
         "cam_y": 0,
         "cam_z": 1.1,
 
-        "ncp_inputs": 384,
+        "ncp_inputs": 768,
         "ncp_neurons": 32,
         "ncp_outputs": 3
     },

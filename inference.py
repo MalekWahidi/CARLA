@@ -12,6 +12,7 @@ from torchvision import transforms
 
 from models.ncp.NCP import NCP_CfC
 from models.perception.DinoV2 import DinoV2
+from models.perception.VC1 import VC1
 
 from utils.utils import load_config
 
@@ -20,8 +21,13 @@ warnings.filterwarnings("ignore", message="xFormers is available")
 
 
 def load_models(checkpoint_path, device, config):
-    # Initialize the models
-    perception_model = DinoV2().to(device)
+    # Initialize perception model
+    if "VC" in config["checkpoint_name"]:
+        perception_model = VC1().to(device)
+    elif "Dino" in config["checkpoint_name"]:
+        perception_model = DinoV2().to(device)
+
+    # Initialize NCP model
     ncp_model = NCP_CfC(config['ncp_inputs'], config['ncp_neurons'], config['ncp_outputs']).to(device)
 
     # Load the combined checkpoint
