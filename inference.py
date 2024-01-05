@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from models.ncp.NCP import NCP_CfC
+from models.control.NCP import NCP_CfC
 from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
 

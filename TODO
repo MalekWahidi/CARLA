@@ -1,0 +1,3 @@
+- Replace NCP model with MLP or LSTM for sanity check (make sure the learning difficulty is not due to the NCP itself)
+- Find a robust way to weight the data samples in a balanced way based on steering angles (maybe also braking) where high values are under-represented in the dataset
+- Download and train on dataset provided by the CARLA Conditional Imitation Learning repo and find a way to add high-level goal conditioning to the model inputs along with RGB frames

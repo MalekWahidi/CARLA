@@ -10,7 +10,10 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from models.ncp.NCP import NCP_CfC
+from models.control.NCP import NCP_CfC
+from models.control.LSTM import LSTM_Net
+from models.control.MLP import MLP_Net
+
 from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
@@ -28,11 +31,11 @@ warnings.filterwarnings('ignore', category=UserWarning, module='torchvision.tran
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.benchmark = True
 
-def train(perception_model, ncp_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, device):
+def train(perception_model, control_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, device):
     if not pretrained:
         perception_model.train()
 
-    ncp_model.train()
+    control_model.train()
     running_loss = 0.0
     criterion = nn.L1Loss()
 
@@ -50,7 +53,7 @@ def train(perception_model, ncp_model, optimizer, trainloader, num_epochs, check
 
             # Inference
             features = perception_model(inputs)
-            outputs, _ = ncp_model(features)
+            outputs, _ = control_model(features)
 
             # Backprop
             # loss = exponential_weighted_mse_loss(outputs, labels)
@@ -83,7 +86,7 @@ def train(perception_model, ncp_model, optimizer, trainloader, num_epochs, check
             # Save combined model state (end-to-end perception+NCP)
             combined_state = {
                 'perception_model': perception_model.state_dict(),
-                'ncp_model': ncp_model.state_dict()
+                'ncp_model': control_model.state_dict()
             }
 
             torch.save(combined_state, checkpoint_path)
@@ -95,7 +98,7 @@ def train(perception_model, ncp_model, optimizer, trainloader, num_epochs, check
     # Save combined model state (end-to-end perception+NCP)
     combined_state = {
         'perception_model': perception_model.state_dict(),
-        'ncp_model': ncp_model.state_dict()
+        'ncp_model': control_model.state_dict()
     }
 
     torch.save(combined_state, checkpoint_path)
@@ -118,7 +121,7 @@ if __name__ == "__main__":
 
     # Select the perception model
     if config['vision_backbone'] == 'cnn':
-        perception_model = ConvHead(n_features=config['ncp_inputs']).to(device)
+        perception_model = ConvHead(n_features=config['control_inputs']).to(device)
         pretrained = False
         config["ncp_inputs"] = 64
     elif config['vision_backbone'] == 'dinov2':
@@ -131,6 +134,16 @@ if __name__ == "__main__":
         config["ncp_inputs"] = 768
     else:
         print(f"Perception model '{config['vision_backbone']}' not found!")
+
+    # Select the control modelo 
+    if config['control_head'] == 'ncp':
+        control_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    elif config['control_head'] == 'lstm':
+        control_model = LSTM_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    elif config['control_head'] == 'mlp':
+        control_model = MLP_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    else:
+        print(f"Control model '{config['control_head']}' not found!")
 
     # Dataset paths
     datasets_path = config['datasets_path']
@@ -154,7 +167,7 @@ if __name__ == "__main__":
     print(f"Model Architecture".center(50, "="))
     print(f"Vision Backbone: {config['vision_backbone']}")
     print(f"Pretrained: {pretrained}")
-    print(f"NCP: [{config['ncp_inputs']}, {config['ncp_neurons']}, {config['ncp_outputs']}]")
+    print(f"Control Model: {config['control_head']} [{config['control_inputs']}, {config['control_neurons']}, {config['control_outputs']}]")
     print()
     print(f"Training Hyperparameters".center(50, "="))
     print(f"Epochs: {config['epochs']}")
@@ -179,9 +192,6 @@ if __name__ == "__main__":
         print(f"Name: {platform.uname().processor}")
         print(f"Number of cores: {psutil.cpu_count(logical=False)}")
     print()
-
-    # Instantiate NCP model
-    ncp_model = NCP_CfC(config['ncp_inputs'], config['ncp_neurons'], config['ncp_outputs']).to(device)
     
     # Pretrained perception vs end-to-end training
     if pretrained:
@@ -191,15 +201,15 @@ if __name__ == "__main__":
 
         # Define optimizer parameters (only NCP parameters are optimized)
         optimizer_params = [
-            {'params': ncp_model.parameters(), 'lr': config['lr_ncp']}
+            {'params': control_model.parameters(), 'lr': config['lr_ncp']}
         ]
     else:
         # Train both models end-to-end with different learning rates
         optimizer_params = [
             {'params': perception_model.parameters(), 'lr': config['lr_ncp']/10},
-            {'params': ncp_model.parameters(), 'lr': config['lr_ncp']}
+            {'params': control_model.parameters(), 'lr': config['lr_ncp']}
         ]
 
     optimizer = optim.Adam(optimizer_params)
 
-    train(perception_model, ncp_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], device)
+    train(perception_model, control_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], device)
