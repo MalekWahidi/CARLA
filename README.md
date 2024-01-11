@@ -1,2 +1,2 @@
 # CARLA
-A Comparative Study on How Different Pretrained Vision Backbones Affect How NCPs Learn to Drive
+A Comparative Study on How Different Pretrained Vision Backbones Affect NCP Driving Abilities in a CARLA Simulation
