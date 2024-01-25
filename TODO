@@ -1,3 +1,6 @@
-- Replace NCP model with MLP or LSTM for sanity check (make sure the learning difficulty is not due to the NCP itself)
+- Collect dataset for driving on simple straight roads and overfit on it with normal loss function (MSE/MAE) and a CNN architecture that is not pretrained and use only steering output
+- If the previous experiments works, slightly increase difficulty of the training task to include a single turn after driving straight to check if the model can learn to steer (test model on same route as the training)
+- Train on only steering and consider going straight on all intersection for a much simpler version of the driving problem (only lane-keeping)
 - Find a robust way to weight the data samples in a balanced way based on steering angles (maybe also braking) where high values are under-represented in the dataset
-- Download and train on dataset provided by the CARLA Conditional Imitation Learning repo and find a way to add high-level goal conditioning to the model inputs along with RGB frames
+- If lane-keeping works, add support to traffic light stopping but always go straight on all intersections for simplicity
+- Add conditional input commands (as one-hot vectors) to condition the model on which turn to take at an intersection (when light turns green) or just lane-keep otherwise

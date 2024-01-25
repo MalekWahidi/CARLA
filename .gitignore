@@ -1,12 +1,14 @@
-# Ignore Python and VS Code cache
+# Ignore cache files
 __pycache__/
 .vscode/
 
 # Ignore pytorch model weights
 *.pth
 
-# Ignore training datasets
+# Ignore datasets and training logs
 datasets/
-
-# Ignore Weights & Biases logs
 wandb/
+
+# Ignore personal notes and TODO
+notes.txt
+TODO.md

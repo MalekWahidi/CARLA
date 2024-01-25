@@ -27,16 +27,15 @@ def process_img(img, cam_w, cam_h):
 
     return img
 
-def save_image(counter, img, img_folder):
+def save_image(counter, img, img_folder, config):
     # Preprocess raw image data for model training
-    img = process_img(img)
+    img = process_img(img, config["cam_w"], config["cam_h"])
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
     cv2.imwrite(img_file, img)
 
 def run_simulation():
     try:
-        config_path = 'config.json'
-        config = load_config(config_path)['CARLA']
+        config = load_config('config.json')['data_collection']
 
         actors = [] # Keep track of all simulated actors for cleanup
         control_data = [] # Store all outputs controls for training dataset
@@ -100,11 +99,13 @@ def run_simulation():
         print("Spawning ego car...")
         ego_bp = bp.filter("model3")[0]
         ego_bp.set_attribute('role_name','ego')
-        spawn_point = random.choice(spawn_points)
+
+        # Define the location to spawn the ego car (replace with your coordinates)
+        ego_spawn_point = carla.Transform(carla.Location(x=-70, y=-60, z=2))
         
         # Keep trying to spawn agent until successful
         while True:
-            ego_car = world.try_spawn_actor(ego_bp, spawn_point)
+            ego_car = world.try_spawn_actor(ego_bp, ego_spawn_point)
             if ego_car:
                 break
 
@@ -117,23 +118,32 @@ def run_simulation():
         cam_bp.set_attribute('image_size_y', config["cam_h"])
         cam_bp.set_attribute('fov', config["cam_fov"])
 
-        spawn_point = carla.Transform(carla.Location(x=1.25, y=0, z=1.1))
+        spawn_point = carla.Transform(carla.Location(x=config["cam_x"], y=config["cam_y"], z=config["cam_z"]))
         ego_cam = world.try_spawn_actor(cam_bp, spawn_point, attach_to=ego_car)
         actors.append(ego_cam)
 
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
 
-        for _ in tqdm(range(config["max_steps"]), desc="Collecting Data", unit="frame"):
+        # Define path to store rgb frames
+        rgb_path = os.path.join(config["datasets_path"], config["dataset_name"], "rgb")
+
+        for i in tqdm(range(config["max_steps"]), desc="Collecting Data", unit="frame"):
             world.tick()
             
-            # Process image frame and save as PNG
-            process_img(image_queue.get(), config["cam_w"], config["cam_h"])
-
             # Collect output control data for training supervision
             controls = ego_car.get_control()
             outputs = [controls.steer, controls.throttle, controls.brake]
+
+            # Check if the agent is steering to cut the recording loop
+            if controls.steer != 0:
+                break
+
             control_data.append(outputs)
+            
+            # Process image frame and save as PNG
+            save_image(i, image_queue.get(), rgb_path, config)
+
 
         controls_path = os.path.join(config["datasets_path"], config["dataset_name"], "controls")
         

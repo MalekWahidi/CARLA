@@ -8,11 +8,12 @@ from tqdm import tqdm
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from models.control.NCP import NCP_CfC
 from models.control.LSTM import LSTM_Net
 from models.control.MLP import MLP_Net
+from models.control.cond_LSTM import Cond_LSTM
 
 from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
@@ -20,6 +21,7 @@ from models.perception.VC1 import VC1
 
 from utils.utils import load_config, visualize_sequence, exponential_weighted_mse_loss
 from data_utils.carla_dataloader import CarlaDataset
+from data_utils.conditional_dataloader import ConditionalCarlaDataset
 
 # Ignore specific warnings
 warnings.filterwarnings("ignore", message="xFormers is available")
@@ -31,33 +33,45 @@ warnings.filterwarnings('ignore', category=UserWarning, module='torchvision.tran
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.benchmark = True
 
-def train(perception_model, control_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, device):
+def train(perception_model, control_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, resume):
     if not pretrained:
         perception_model.train()
 
     control_model.train()
     running_loss = 0.0
     criterion = nn.L1Loss()
+    start_epoch = 0
 
-    for epoch in range(num_epochs):
+    # If 'resume' is True continue training from saved checkpoint
+    if resume and os.path.exists(checkpoint_path):
+        print("Resuming from saved checkpoint...")
+        checkpoint = torch.load(checkpoint_path)
+        perception_model.load_state_dict(checkpoint['perception_model'])
+        control_model.load_state_dict(checkpoint['ncp_model'])
+        start_epoch = checkpoint['epoch'] + 1  # Resume from the next epoch
+        optimizer.load_state_dict(checkpoint['optimizer'])
+
+    for epoch in range(start_epoch, num_epochs):
         pbar = tqdm(total=len(trainloader), desc=f"Epoch {epoch+1}/{num_epochs}")
 
-        for i, (inputs, labels) in enumerate(trainloader):
-            # Convert inputs and labels to float32 and move to GPU
-            inputs, labels = inputs.float().cuda(non_blocking=True) , labels.float().cuda(non_blocking=True) 
+        for i, (images, commands, controls) in enumerate(trainloader):
+            # Convert tensors to float32 and move to GPU
+            images = images.float().cuda(non_blocking=True)
+            commands = commands.float().cuda(non_blocking=True)
+            controls = controls.float().cuda(non_blocking=True)
 
-            # visualize_sequence(inputs.shape[0], inputs.shape[1], inputs)
+            # visualize_sequence(images.shape[0], images.shape[1], images)
 
             # Reset gradients and hidden state for next iteration
             optimizer.zero_grad(set_to_none=True)
 
             # Inference
-            features = perception_model(inputs)
-            outputs, _ = control_model(features)
+            features = perception_model(images)
+            outputs, _ = control_model(features, commands)
 
             # Backprop
             # loss = exponential_weighted_mse_loss(outputs, labels)
-            loss = criterion(outputs, labels)
+            loss = criterion(outputs, controls)
             loss.backward()
             optimizer.step()
 
@@ -82,27 +96,22 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
                 "epoch": epoch
             })
 
-        if (epoch + 1) % 5 == 0:
-            # Save combined model state (end-to-end perception+NCP)
+        if (epoch + 1) % 5 == 0 or epoch + 1 == num_epochs:
+            # Save combined model state (end-to-end perception+NCP) with additional information
             combined_state = {
                 'perception_model': perception_model.state_dict(),
-                'ncp_model': control_model.state_dict()
+                'ncp_model': control_model.state_dict(),
+                'epoch': epoch,  # Save the current epoch
+                'optimizer': optimizer.state_dict()  # Save optimizer state
             }
 
             torch.save(combined_state, checkpoint_path)
-            print(f"Model checkpoint saved")
+            print(f"Checkpoint saved at epoch {epoch + 1}")
 
         pbar.close()
         running_loss = 0.0
-
-    # Save combined model state (end-to-end perception+NCP)
-    combined_state = {
-        'perception_model': perception_model.state_dict(),
-        'ncp_model': control_model.state_dict()
-    }
-
-    torch.save(combined_state, checkpoint_path)
-    print(f"Model checkpoint saved")
+    
+    print(f"Training completed!")
 
 if __name__ == "__main__":
     config_path = 'config.json'
@@ -139,7 +148,7 @@ if __name__ == "__main__":
     if config['control_head'] == 'ncp':
         control_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
     elif config['control_head'] == 'lstm':
-        control_model = LSTM_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+        control_model = Cond_LSTM(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
     elif config['control_head'] == 'mlp':
         control_model = MLP_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
     else:
@@ -148,18 +157,31 @@ if __name__ == "__main__":
     # Dataset paths
     datasets_path = config['datasets_path']
     dataset_name = config['dataset_name']
-    img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
-    controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
+    full_data_path = os.path.join(datasets_path, dataset_name)
+    # img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
+    # controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
 
     # Create dataloader
-    dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'])
-    dataloader = DataLoader(dataset, 
+    # Assuming each HDF5 file is treated as a separate dataset
+    hdf5_files = [os.path.join(full_data_path, f) for f in os.listdir(full_data_path) if f.endswith('.h5')]
+
+    # Create dataloader
+    # dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'])
+    # Assuming you concatenate the datasets from all HDF5 files 
+    dataset = ConditionalCarlaDataset(hdf5_files[0], config['seq_len'], num_commands=4, backbone=config['vision_backbone'])
+    # combined_dataset = ConcatDataset(datasets)
+
+    dataloader = DataLoader(dataset,
                             batch_size=config['batch_size'], 
                             shuffle=True, 
                             num_workers=4, 
                             pin_memory=True, 
                             prefetch_factor=2, 
                             persistent_workers=True)
+    
+    # # Remember to close HDF5 files when done
+    # for dataset in datasets:
+    #     dataset.close()
     
     # Display all training details
     print(f"Training".center(50, "="))
@@ -212,4 +234,4 @@ if __name__ == "__main__":
 
     optimizer = optim.Adam(optimizer_params)
 
-    train(perception_model, control_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], device)
+    train(perception_model, control_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], config['resume'])
