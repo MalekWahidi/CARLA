@@ -107,7 +107,9 @@ def run_simulation():
         ego_bp.set_attribute('role_name','ego')
 
         # Define the location to spawn the ego car
-        ego_spawn_point = carla.Transform(carla.Location(x=-70, y=-60, z=2))
+        ego_spawn_point = carla.Transform(carla.Location(x=config["spawn_point"][0], 
+                                                         y=config["spawn_point"][1], 
+                                                         z=config["spawn_point"][2]))
         
         # Keep trying to spawn agent until successful
         while True:

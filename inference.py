@@ -11,6 +11,7 @@ import torch
 from torchvision import transforms
 
 from models.control.NCP import NCP_CfC
+from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
 
@@ -22,7 +23,9 @@ warnings.filterwarnings("ignore", message="xFormers is available")
 
 def load_models(checkpoint_path, device, config):
     # Initialize perception model
-    if "VC" in config["checkpoint_name"]:
+    if "CNN" in config["checkpoint_name"]:
+        perception_model = ConvHead().to(device)
+    elif "VC" in config["checkpoint_name"]:
         perception_model = VC1().to(device)
     elif "Dino" in config["checkpoint_name"]:
         perception_model = DinoV2().to(device)
@@ -121,7 +124,9 @@ def run_closed_loop():
         ego_bp.set_attribute('role_name','ego')
         
         # Define the location to spawn the ego car
-        ego_spawn_point = carla.Transform(carla.Location(x=-70, y=-60, z=2))
+        ego_spawn_point = carla.Transform(carla.Location(x=config["spawn_point"][0], 
+                                                         y=config["spawn_point"][1], 
+                                                         z=config["spawn_point"][2]))
         
         # Keep trying to spawn agent until successful
         while True:
@@ -133,17 +138,19 @@ def run_closed_loop():
         actors.append(ego_car)
             
         # Spawn front-facing rgb camera on ego car hood
-        print("Spawning ego camera...")
+        print("Setting up ego camera parameters...")
         cam_bp = bp.find('sensor.camera.rgb')
         cam_bp.set_attribute('image_size_x', config["cam_w"])
         cam_bp.set_attribute('image_size_y', config["cam_h"])
         cam_bp.set_attribute('fov', config["cam_fov"])
 
+        print("Spawning ego camera...")
         spawn_point = carla.Transform(carla.Location(x=config["cam_x"], y=config["cam_y"], z=config["cam_z"]))
         ego_cam = world.try_spawn_actor(cam_bp, spawn_point, attach_to=ego_car)
         actors.append(ego_cam)
 
         # Synchronous mode requires queueing images from the camera
+        print("Listening to ego camera...")
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
 
@@ -152,7 +159,7 @@ def run_closed_loop():
 
         while True:
             world.tick()
-
+            
             # Preprocess image for model input and move to GPU
             img = process_img(image_queue.get(), int(config["cam_w"]), int(config["cam_h"])).to(device)
 
@@ -164,8 +171,11 @@ def run_closed_loop():
             # Remove batch and time dimensions
             controls = controls.squeeze(0).squeeze(0).cpu().numpy()
 
-            steer, throttle, brake = controls
-            brake = 0
+            # Extract steering, throttle, and brake values
+            if config["control_outputs"] == 3:
+                steer, throttle, brake = controls
+            elif config["control_outputs"] == 1:
+                steer, throttle, brake = controls[0], 0.3, 0.0
 
             print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
 
@@ -176,7 +186,7 @@ def run_closed_loop():
             ego_car.apply_control(control_command)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"ERROR: {e}")
 
     finally:
         print("\nCleaning up...")
