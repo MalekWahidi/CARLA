@@ -26,7 +26,7 @@ def load_and_inspect(file_path):
         print("No anomalies detected")
 
 # Path to your 'all_controls.npy' file
-controls_folder = "/home/malek/Documents/CARLA/datasets/autopilot_town01/controls"
+controls_folder = "/home/malek/Documents/CARLA/datasets/town01_straight/controls"
 file_path = f"{controls_folder}/all_controls.npy"
 
 # Run the inspection

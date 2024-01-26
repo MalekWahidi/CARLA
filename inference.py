@@ -28,7 +28,7 @@ def load_models(checkpoint_path, device, config):
         perception_model = DinoV2().to(device)
 
     # Initialize NCP model
-    ncp_model = NCP_CfC(config['ncp_inputs'], config['ncp_neurons'], config['ncp_outputs']).to(device)
+    ncp_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
 
     # Load the combined checkpoint
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -119,11 +119,13 @@ def run_closed_loop():
         print("Spawning ego car...")
         ego_bp = bp.filter("model3")[0]
         ego_bp.set_attribute('role_name','ego')
-        spawn_point = random.choice(spawn_points)
+        
+        # Define the location to spawn the ego car
+        ego_spawn_point = carla.Transform(carla.Location(x=-70, y=-60, z=2))
         
         # Keep trying to spawn agent until successful
         while True:
-            ego_car = world.try_spawn_actor(ego_bp, spawn_point)
+            ego_car = world.try_spawn_actor(ego_bp, ego_spawn_point)
             if ego_car:
                 break
 

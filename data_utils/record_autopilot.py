@@ -1,4 +1,5 @@
 import os
+import sys
 import queue
 import random
 from tqdm import tqdm
@@ -8,6 +9,11 @@ import numpy as np
 
 import carla
 
+# Add the parent directory to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
 from utils.utils import load_config
 
 
@@ -16,7 +22,7 @@ def process_img(img, cam_w, cam_h):
     img = np.frombuffer(img.raw_data, dtype=np.uint8)
 
     # Reshape into a 2D RGBA image
-    img = img.reshape((cam_h, cam_w, 4))
+    img = img.reshape((int(cam_h), int(cam_w), 4))
 
     # Visualize
     cv2.imshow("Camera View", img)
@@ -100,7 +106,7 @@ def run_simulation():
         ego_bp = bp.filter("model3")[0]
         ego_bp.set_attribute('role_name','ego')
 
-        # Define the location to spawn the ego car (replace with your coordinates)
+        # Define the location to spawn the ego car
         ego_spawn_point = carla.Transform(carla.Location(x=-70, y=-60, z=2))
         
         # Keep trying to spawn agent until successful
@@ -111,22 +117,37 @@ def run_simulation():
 
         actors.append(ego_car)
         ego_car.set_autopilot(True)
-            
+
+        # Set the ego car to ignore all traffic lights
+        traffic_manager.ignore_lights_percentage(ego_car, 100)
+        
+        # Set the ego car to always go straight at intersections
+        traffic_manager.set_route(ego_car, ['Straight']*100)
+        
         print("Spawning ego camera...")
         cam_bp = bp.find('sensor.camera.rgb')
         cam_bp.set_attribute('image_size_x', config["cam_w"])
         cam_bp.set_attribute('image_size_y', config["cam_h"])
         cam_bp.set_attribute('fov', config["cam_fov"])
+        print("Camera attributes set...")
 
         spawn_point = carla.Transform(carla.Location(x=config["cam_x"], y=config["cam_y"], z=config["cam_z"]))
+        print("Camera spawn point set...")
+
         ego_cam = world.try_spawn_actor(cam_bp, spawn_point, attach_to=ego_car)
         actors.append(ego_cam)
+        print("Camera spawned...")
 
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
 
         # Define path to store rgb frames
         rgb_path = os.path.join(config["datasets_path"], config["dataset_name"], "rgb")
+        controls_path = os.path.join(config["datasets_path"], config["dataset_name"], "controls")
+        
+        # Create the data dirs if they don't exist yet
+        os.makedirs(rgb_path, exist_ok=True)
+        os.makedirs(controls_path, exist_ok=True)
 
         for i in tqdm(range(config["max_steps"]), desc="Collecting Data", unit="frame"):
             world.tick()
@@ -135,18 +156,11 @@ def run_simulation():
             controls = ego_car.get_control()
             outputs = [controls.steer, controls.throttle, controls.brake]
 
-            # Check if the agent is steering to cut the recording loop
-            if controls.steer != 0:
-                break
-
             control_data.append(outputs)
             
             # Process image frame and save as PNG
             save_image(i, image_queue.get(), rgb_path, config)
 
-
-        controls_path = os.path.join(config["datasets_path"], config["dataset_name"], "controls")
-        
         # Save all control data to a single npy file at the end
         np.save(f"{controls_path}/all_controls.npy", control_data)
 

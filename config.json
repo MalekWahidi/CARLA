@@ -1,24 +1,25 @@
 {
     "train": {
         "datasets_path": "/home/malek/Documents/CARLA/datasets",
-        "dataset_name": "CORL2017ImitationLearningData/AgentHuman/SeqTrain",
+        "dataset_name": "town01_straight",
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "VC1-LSTM-(MAE-Cond).pth",
+        "checkpoint_name": "CNN-NCP-MSE-town01_straight.pth",
         "resume": false,
         "wandb": false,
         
-        "vision_backbone": "vc1",
-        "control_head": "lstm",
+        "vision_backbone": "cnn",
+        "control_head": "ncp",
+        "conditional": false,
 
         "epochs": 100,
         "seq_len": 10,
         "batch_size": 4,
-        "lr_ncp": 0.01,  
+        "lr_ncp": 0.01,
 
         "num_commands": 4,
-        "control_inputs": 768,
-        "control_neurons": 128,
-        "control_outputs": 3
+        "control_inputs": 64,
+        "control_neurons": 32,
+        "control_outputs": 1
     },
 
     "inference": {
@@ -28,7 +29,7 @@
         "time_step": 0.05,
 
         "num_ped": 0,
-        "num_cars": 200,
+        "num_cars": 0,
 
         "cam_w": "518",
         "cam_h": "518",
@@ -37,9 +38,9 @@
         "cam_y": 0,
         "cam_z": 1.1,
 
-        "ncp_inputs": 768,
-        "ncp_neurons": 32,
-        "ncp_outputs": 3
+        "control_inputs": 64,
+        "control_neurons": 32,
+        "control_outputs": 1
     },
 
     "data_collection": {
@@ -47,15 +48,14 @@
         "dataset_name": "town01_straight",
 
         "time_step": 0.05,
-        "max_steps": 36000,
+        "max_steps": 6000,
 
         "num_ped": 0,
-        "num_cars": 100,
+        "num_cars": 0,
 
         "cam_w": "224",
         "cam_h": "224",
         "cam_fov": "110",
-        
         "cam_x": 1.25,
         "cam_y": 0,
         "cam_z": 1.1

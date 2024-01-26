@@ -11,9 +11,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, ConcatDataset
 
 from models.control.NCP import NCP_CfC
+from models.control.cond_NCP import Cond_NCP_CfC
 from models.control.LSTM import LSTM_Net
-from models.control.MLP import MLP_Net
 from models.control.cond_LSTM import Cond_LSTM
+from models.control.MLP import MLP_Net
 
 from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
@@ -39,7 +40,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
     control_model.train()
     running_loss = 0.0
-    criterion = nn.L1Loss()
+    criterion = nn.MSELoss()
     start_epoch = 0
 
     # If 'resume' is True continue training from saved checkpoint
@@ -54,10 +55,9 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     for epoch in range(start_epoch, num_epochs):
         pbar = tqdm(total=len(trainloader), desc=f"Epoch {epoch+1}/{num_epochs}")
 
-        for i, (images, commands, controls) in enumerate(trainloader):
+        for i, (images, controls) in enumerate(trainloader):
             # Convert tensors to float32 and move to GPU
             images = images.float().cuda(non_blocking=True)
-            commands = commands.float().cuda(non_blocking=True)
             controls = controls.float().cuda(non_blocking=True)
 
             # visualize_sequence(images.shape[0], images.shape[1], images)
@@ -67,10 +67,9 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
             # Inference
             features = perception_model(images)
-            outputs, _ = control_model(features, commands)
+            outputs, _ = control_model(features)
 
             # Backprop
-            # loss = exponential_weighted_mse_loss(outputs, labels)
             loss = criterion(outputs, controls)
             loss.backward()
             optimizer.step()
@@ -78,7 +77,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
             running_loss += loss.item()
 
             if wandb_enable:
-                # Log trian loss and learning rate after each batch
+                # Log trian loss after each batch
                 wandb.log({
                     "train loss": loss.item(),
                     "epoch": epoch
@@ -113,6 +112,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     
     print(f"Training completed!")
 
+
 if __name__ == "__main__":
     config_path = 'config.json'
     config = load_config(config_path)['train']
@@ -128,27 +128,32 @@ if __name__ == "__main__":
     checkpoint_name = config['checkpoint_name']
     checkpoint_path = os.path.join(checkpoint_folder, checkpoint_name)
 
-    # Select the perception model
+    # Select the perception model based on config settings
     if config['vision_backbone'] == 'cnn':
         perception_model = ConvHead(n_features=config['control_inputs']).to(device)
         pretrained = False
-        config["ncp_inputs"] = 64
     elif config['vision_backbone'] == 'dinov2':
         perception_model = DinoV2()
         pretrained = True
-        config["ncp_inputs"] = 384
+        config["control_inputs"] = 384
     elif config['vision_backbone'] == 'vc1':
         perception_model = VC1()
         pretrained = True
-        config["ncp_inputs"] = 768
+        config["control_inputs"] = 768
     else:
         print(f"Perception model '{config['vision_backbone']}' not found!")
 
-    # Select the control modelo 
-    if config['control_head'] == 'ncp':
+    # Select the control model based on config settings
+    if config['control_head'] == 'ncp' and not config['conditional']:
         control_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
-    elif config['control_head'] == 'lstm':
+    elif config['control_head'] == 'ncp' and config['conditional']:
+        control_model = Cond_NCP_CfC(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
+    
+    elif config['control_head'] == 'lstm' and not config['conditional']:
+        control_model = LSTM_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    elif config['control_head'] == 'lstm' and config['conditional']:
         control_model = Cond_LSTM(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
+
     elif config['control_head'] == 'mlp':
         control_model = MLP_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
     else:
@@ -158,18 +163,14 @@ if __name__ == "__main__":
     datasets_path = config['datasets_path']
     dataset_name = config['dataset_name']
     full_data_path = os.path.join(datasets_path, dataset_name)
-    # img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
-    # controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
+    img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
+    controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
 
     # Create dataloader
-    # Assuming each HDF5 file is treated as a separate dataset
-    hdf5_files = [os.path.join(full_data_path, f) for f in os.listdir(full_data_path) if f.endswith('.h5')]
-
-    # Create dataloader
-    # dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'])
-    # Assuming you concatenate the datasets from all HDF5 files 
-    dataset = ConditionalCarlaDataset(hdf5_files[0], config['seq_len'], num_commands=4, backbone=config['vision_backbone'])
-    # combined_dataset = ConcatDataset(datasets)
+    if not config['conditional']:
+        dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'], n_outputs=config['control_outputs'])
+    else:
+        print("Conditional data loader not setup yet!")
 
     dataloader = DataLoader(dataset,
                             batch_size=config['batch_size'], 
@@ -179,10 +180,6 @@ if __name__ == "__main__":
                             prefetch_factor=2, 
                             persistent_workers=True)
     
-    # # Remember to close HDF5 files when done
-    # for dataset in datasets:
-    #     dataset.close()
-    
     # Display all training details
     print(f"Training".center(50, "="))
     print()
@@ -190,6 +187,7 @@ if __name__ == "__main__":
     print(f"Vision Backbone: {config['vision_backbone']}")
     print(f"Pretrained: {pretrained}")
     print(f"Control Model: {config['control_head']} [{config['control_inputs']}, {config['control_neurons']}, {config['control_outputs']}]")
+    print(f"Conditional: {config['conditional']}")
     print()
     print(f"Training Hyperparameters".center(50, "="))
     print(f"Epochs: {config['epochs']}")
