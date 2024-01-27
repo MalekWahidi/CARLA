@@ -21,18 +21,24 @@ from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
 
 from utils.utils import load_config, visualize_sequence, exponential_weighted_mse_loss
-from data_utils.carla_dataloader import CarlaDataset
-from data_utils.conditional_dataloader import ConditionalCarlaDataset
+from data_utils.carla_dataloader import CarlaData
+from data_utils.conditional_dataloader import ConditionalCarlaData
 
 # Ignore specific warnings
 warnings.filterwarnings("ignore", message="xFormers is available")
-
-# Suppress specific UserWarning from torchvision
 warnings.filterwarnings('ignore', category=UserWarning, module='torchvision.transforms.functional')
 
-# Pytorch optimizations
+# Pytorch settings for optimization and reproducibility
+torch.manual_seed(0)
+torch.cuda.manual_seed(0)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
 torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.benchmark = True
+
+
+# Used as worker_init_fn for deterministic data loading
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
 
 def train(perception_model, control_model, optimizer, trainloader, num_epochs, checkpoint_path, pretrained, wandb_enable, resume):
     if not pretrained:
@@ -84,7 +90,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
                 }, commit=False)  # Delay logging until all items are ready
 
             # Update progress bar
-            pbar.set_description(f"Epoch {epoch+1} - Running Average Loss: {running_loss / (i + 1):.4f}")
+            pbar.set_description(f"Epoch {epoch+1} - Running Average Loss: {running_loss / (i + 1):.6f}")
             pbar.update(1)
 
         if wandb_enable:
@@ -168,17 +174,28 @@ if __name__ == "__main__":
 
     # Create dataloader
     if not config['conditional']:
-        dataset = CarlaDataset(img_folder, controls_folder, config['seq_len'], backbone=config['vision_backbone'], n_outputs=config['control_outputs'])
+        dataset = CarlaData(img_folder, 
+                            controls_folder, 
+                            config['seq_len'], 
+                            backbone=config['vision_backbone'], 
+                            n_outputs=config['control_outputs'],
+                            start_idx=config['start_idx'],
+                            end_idx=config['end_idx'])
     else:
         print("Conditional data loader not setup yet!")
+
+    # Generator for deterministic shuffling
+    g = torch.Generator()
+    g.manual_seed(0)
 
     dataloader = DataLoader(dataset,
                             batch_size=config['batch_size'], 
                             shuffle=True, 
                             num_workers=4, 
-                            pin_memory=True, 
-                            prefetch_factor=2, 
-                            persistent_workers=True)
+                            pin_memory=True,
+                            persistent_workers=True,
+                            worker_init_fn=seed_worker,
+                            generator=g)
     
     # Display all training details
     print(f"Training".center(50, "="))

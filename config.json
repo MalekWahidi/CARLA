@@ -3,7 +3,7 @@
         "datasets_path": "/home/malek/Documents/CARLA/datasets",
         "dataset_name": "town01_straight",
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "CNN-NCP-MSE-town01_straight.pth",
+        "checkpoint_name": "[CNN-LTC]-MSE-[town01_straight]-stb.pth",
         "resume": false,
         "wandb": true,
         
@@ -13,37 +13,40 @@
         "conditional": false,
         "num_commands": 3,
 
+        "start_idx": 0,
+        "end_idx": null,
+
         "epochs": 100,
-        "seq_len": 10,
+        "seq_len": 6,
         "batch_size": 4,
         "lr_ncp": 0.01,
 
-        "control_inputs": 64,
+        "control_inputs": 16,
         "control_neurons": 32,
-        "control_outputs": 1
+        "control_outputs": 3
     },
 
     "inference": {
         "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "CNN-NCP-MSE-town01_straight.pth",
+        "checkpoint_name": "[CNN-LTC]-MSE-[town01_straight]-stb.pth",
 
         "time_step": 0.05,
 
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-70, -60, 2],
+        "spawn_point": [-30, -58, 0.5],
 
-        "cam_w": "224",
-        "cam_h": "224",
+        "cam_w": "448",
+        "cam_h": "448",
         "cam_fov": "110",
         "cam_x": 1.25,
         "cam_y": 0,
         "cam_z": 1.1,
 
-        "control_inputs": 64,
+        "control_inputs": 16,
         "control_neurons": 32,
-        "control_outputs": 1
+        "control_outputs": 3
     },
 
     "data_collection": {
@@ -51,15 +54,15 @@
         "dataset_name": "town01_straight",
 
         "time_step": 0.05,
-        "max_steps": 6000,
+        "max_steps": 400,
 
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-70, -60, 2],
+        "spawn_point": [-30, -58, 0.5],
 
-        "cam_w": "224",
-        "cam_h": "224",
+        "cam_w": "448",
+        "cam_h": "448",
         "cam_fov": "110",
         "cam_x": 1.25,
         "cam_y": 0,

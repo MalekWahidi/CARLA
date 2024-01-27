@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ncps.torch import CfC
+from ncps.torch import CfC, LTC
 from ncps.wirings import AutoNCP
 
 class NCP_CfC(nn.Module):
@@ -10,7 +10,7 @@ class NCP_CfC(nn.Module):
         super().__init__()
         self.n_outputs = n_outputs
         wiring = AutoNCP(n_neurons, n_outputs, seed=0)
-        self.rnn = CfC(n_features, wiring, batch_first=True)
+        self.rnn = LTC(n_features, wiring, batch_first=True)
 
     def forward(self, x, hx=None):
         x, hx = self.rnn(x, hx)

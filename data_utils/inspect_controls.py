@@ -6,7 +6,7 @@ def load_and_inspect(file_path):
 
     # Display some basic information
     print("Shape of the Data:", controls_data.shape)
-    print("First few entries:\n", controls_data[:5])
+    print("First few entries:\n", controls_data[350:500])
 
     # Basic statistics
     print("\nStatistics:")

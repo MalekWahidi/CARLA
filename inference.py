@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", message="xFormers is available")
 def load_models(checkpoint_path, device, config):
     # Initialize perception model
     if "CNN" in config["checkpoint_name"]:
-        perception_model = ConvHead().to(device)
+        perception_model = ConvHead(n_features=config['control_inputs']).to(device)
     elif "VC" in config["checkpoint_name"]:
         perception_model = VC1().to(device)
     elif "Dino" in config["checkpoint_name"]:
@@ -174,8 +174,9 @@ def run_closed_loop():
             # Extract steering, throttle, and brake values
             if config["control_outputs"] == 3:
                 steer, throttle, brake = controls
+                brake = 0
             elif config["control_outputs"] == 1:
-                steer, throttle, brake = controls[0], 0.3, 0.0
+                steer, throttle, brake = controls[0], 0.38, 0.0
 
             print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
 

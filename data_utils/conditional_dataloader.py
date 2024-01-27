@@ -7,7 +7,7 @@ from torchvision import transforms
 from PIL import Image
 
 
-class ConditionalCarlaDataset(Dataset):
+class ConditionalCarlaData(Dataset):
     def __init__(self, hdf5_file, sequence_length, num_commands=4, backbone='cnn'):
         self.hdf5_file = hdf5_file
         # print("hdf5_file: ", hdf5_file)

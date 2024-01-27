@@ -8,13 +8,17 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
-class CarlaDataset(Dataset):
-    def __init__(self, img_folder, controls_folder, sequence_length, backbone='cnn', n_outputs=3):
+class CarlaData(Dataset):
+    def __init__(self, img_folder, controls_folder, sequence_length, backbone='cnn', n_outputs=3, start_idx=0, end_idx=None):
         self.img_folder = img_folder
         self.controls_folder = controls_folder
+
         self.sequence_length = sequence_length
-        self.backbone = backbone
         self.n_outputs = n_outputs
+        self.backbone = backbone
+
+        self.start_idx = start_idx
+        self.end_idx = end_idx
 
         self.controls = np.load(os.path.join(controls_folder, 'all_controls.npy'))
         self.img_files = [os.path.join(img_folder, f"{i:05d}.png") for i in range(len(self.controls))]
@@ -30,14 +34,25 @@ class CarlaDataset(Dataset):
 
     def __len__(self):
         # Return number of complete sequences
-        return len(self.controls) - (self.sequence_length - 1)
+        if self.end_idx is not None:
+            # Ensure we can fetch the last sequence without going out of bounds
+            adjusted_length = self.end_idx - self.start_idx + 1 - (self.sequence_length - 1)
+            return max(0, adjusted_length)  # Ensure non-negative
+        else:
+            return len(self.controls) - (self.sequence_length - 1)
     
     def size(self):
         # Return full number of samples
-        return len(self.controls)
+        if self.end_idx is not None:
+            return self.end_idx - self.start_idx + 1
+        else:
+            return len(self.controls)
 
     def __getitem__(self, idx):
         images = []
+
+        if self.end_idx is not None:
+            idx = self.start_idx + idx
 
         # Get consecutive sequence of controls
         controls = self.controls[idx : idx + self.sequence_length]
