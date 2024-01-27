@@ -10,7 +10,7 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader, ConcatDataset
 
-from models.control.NCP import NCP_CfC
+from models.control.NCP import NCP
 from models.control.cond_NCP import Cond_NCP_CfC
 from models.control.LSTM import LSTM_Net
 from models.control.cond_LSTM import Cond_LSTM
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     # Select the control model based on config settings
     if config['control_head'] == 'ncp' and not config['conditional']:
-        control_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+        control_model = NCP(config['control_inputs'], config['control_neurons'], config['control_outputs'], cell_type=config['control_cells']).to(device)
     elif config['control_head'] == 'ncp' and config['conditional']:
         control_model = Cond_NCP_CfC(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
     

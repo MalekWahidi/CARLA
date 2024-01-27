@@ -9,6 +9,7 @@
         
         "vision_backbone": "cnn",
         "control_head": "ncp",
+        "control_cells": "ltc",
 
         "conditional": false,
         "num_commands": 3,

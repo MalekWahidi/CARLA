@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from models.control.NCP import NCP_CfC
+from models.control.NCP import NCP
 from models.perception.Conv import ConvHead
 from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
@@ -30,8 +30,15 @@ def load_models(checkpoint_path, device, config):
     elif "Dino" in config["checkpoint_name"]:
         perception_model = DinoV2().to(device)
 
+    if "CfC" in config["checkpoint_name"]:
+        cell_type = "cfc"
+    elif "LTC" in config["checkpoint_name"]:
+        cell_type = "ltc"
+    else:
+        print("Cell type not found for NCP model")
+
     # Initialize NCP model
-    ncp_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    ncp_model = NCP(config['control_inputs'], config['control_neurons'], config['control_outputs'], cell_type=cell_type).to(device)
 
     # Load the combined checkpoint
     checkpoint = torch.load(checkpoint_path, map_location=device)
