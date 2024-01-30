@@ -143,9 +143,10 @@ def run_simulation():
         image_queue = queue.Queue()
         ego_cam.listen(image_queue.put)
 
-        # Define path to store rgb frames
-        rgb_path = os.path.join(config["datasets_path"], config["dataset_name"], "rgb")
-        controls_path = os.path.join(config["datasets_path"], config["dataset_name"], "controls")
+        # Define path to store rgb frames and control data
+        datasets_path = os.path.join(current_dir, '..', 'datasets')
+        rgb_path = os.path.join(datasets_path, config["dataset_name"], "rgb")
+        controls_path = os.path.join(datasets_path, config["dataset_name"], "controls")
         
         # Create the data dirs if they don't exist yet
         os.makedirs(rgb_path, exist_ok=True)

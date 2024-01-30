@@ -1,15 +1,22 @@
+import os
+import sys
 import numpy as np
+
+# Add the parent directory to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
+from utils.utils import load_config
 
 def load_and_inspect(file_path):
     # Load the numpy file
     controls_data = np.load(file_path)
 
-    # Display some basic information
+    # Display some basic info
     print("Shape of the Data:", controls_data.shape)
     print("First few entries:\n", controls_data[350:500])
-
-    # Basic statistics
-    print("\nStatistics:")
+    print("\nStats:")
     print("Mean Steer:", np.mean(controls_data[:, 0]))
     print("Mean Throttle:", np.mean(controls_data[:, 1]))
     print("Mean Brake:", np.mean(controls_data[:, 2]))
@@ -25,9 +32,12 @@ def load_and_inspect(file_path):
     else:
         print("No anomalies detected")
 
-# Path to your 'all_controls.npy' file
-controls_folder = "/home/malek/Documents/CARLA/datasets/town01_straight/controls"
-file_path = f"{controls_folder}/all_controls.npy"
+if __name__ == "__main__":
+    config = load_config('config.json')['data_collection']
 
-# Run the inspection
-load_and_inspect(file_path)
+    # Get path to 'all_controls.npy' file
+    datasets_path = os.path.join(current_dir, '..', 'datasets')
+    controls_path = os.path.join(datasets_path, config["dataset_name"], "controls/all_controls.npy")
+
+    # Run the inspection
+    load_and_inspect(controls_path)
