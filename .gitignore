@@ -8,6 +8,7 @@ __pycache__/
 # Ignore datasets and training logs
 datasets/
 wandb/
+weights/
 
 # Ignore personal notes and TODO
 notes.txt
