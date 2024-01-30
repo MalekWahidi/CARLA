@@ -86,8 +86,10 @@ def run_closed_loop():
         config_path = 'config.json'
         config = load_config(config_path)['inference']
 
-        model_path = os.path.join(config["checkpoint_folder"], config["checkpoint_name"])
-        
+        # Set checkpoint path
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        checkpoint_path = os.path.join(root_dir, "weights/e2e", config["checkpoint_name"] + ".pth")
+
         actors = [] # Keep track of all simulated actors for cleanup
 
         # Initialize CARLA client
@@ -97,7 +99,7 @@ def run_closed_loop():
         # Load trained model to GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        perception_model, ncp_model = load_models(model_path, device, config)
+        perception_model, ncp_model = load_models(checkpoint_path, device, config)
         
         # Initialize world, blueprint, map, and traffic manager objects
         world = client.get_world()
@@ -181,10 +183,12 @@ def run_closed_loop():
 
             # Extract steering, throttle, and brake values
             if config["control_outputs"] == 3:
-                steer, throttle, _ = controls
-                brake = 0
+                steer, throttle, brake = controls
+                if brake < 0.001:
+                    brake = 0.0
+
             elif config["control_outputs"] == 1:
-                steer, throttle, brake = controls[0], 0.38, 0.0
+                steer, throttle, brake = controls[0], 0.4, 0.0
 
             print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
 

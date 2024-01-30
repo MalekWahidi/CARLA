@@ -1,13 +1,11 @@
 {
     "train": {
-        "datasets_path": "/home/malek/Documents/CARLA/datasets",
         "dataset_name": "town01_straight",
-        "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "ResNet-wMSE.pth",
+        "checkpoint_name": "VC1-wMSE",
         "resume": false,
         "wandb": true,
         
-        "vision_backbone": "resnet",
+        "vision_backbone": "vc1",
         "control_head": "ncp",
         "control_cells": "cfc",
 
@@ -17,19 +15,18 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 100,
+        "epochs": 200,
         "seq_len": 6,
         "batch_size": 4,
         "lr_ncp": 0.001,
 
-        "control_inputs": 128,
+        "control_inputs": 16,
         "control_neurons": 32,
         "control_outputs": 3
     },
 
     "inference": {
-        "checkpoint_folder": "/home/malek/Documents/CARLA/weights/e2e",
-        "checkpoint_name": "[VC1-CfC]-MSE-[town01_straight]-stb.pth",
+        "checkpoint_name": "VC1-wMSE",
 
         "time_step": 0.05,
 
@@ -45,13 +42,12 @@
         "cam_y": 0,
         "cam_z": 1.1,
 
-        "control_inputs": 64,
+        "control_inputs": 768,
         "control_neurons": 32,
         "control_outputs": 3
     },
 
     "data_collection": {
-        "datasets_path": "/home/malek/Documents/CARLA/datasets/",
         "dataset_name": "town01_straight",
 
         "time_step": 0.05,

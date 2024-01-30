@@ -15,7 +15,7 @@ def load_and_inspect(file_path):
 
     # Display some basic info
     print("Shape of the Data:", controls_data.shape)
-    print("First few entries:\n", controls_data[350:500])
+    print("First few entries:\n", controls_data[0:200])
     print("\nStats:")
     print("Mean Steer:", np.mean(controls_data[:, 0]))
     print("Mean Throttle:", np.mean(controls_data[:, 1]))

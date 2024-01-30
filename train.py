@@ -126,6 +126,10 @@ if __name__ == "__main__":
     config_path = 'config.json'
     config = load_config(config_path)['train']
 
+    # Get root dir for setting relative paths of datasets and checkpoints
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Set device to GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize wandb
@@ -144,12 +148,13 @@ if __name__ == "__main__":
         wandb.config.ncp_outputs = config['control_outputs']
         wandb.config.conditional = config['conditional']
 
-
     # Model checkpoint save path
-    checkpoint_folder = config['checkpoint_folder']
     checkpoint_name = config['checkpoint_name']
-    checkpoint_path = os.path.join(checkpoint_folder, checkpoint_name)
-
+    weights_path = os.path.join(root_dir, "weights/e2e")
+    # Create the weights dir if it don't exist yet
+    os.makedirs(weights_path, exist_ok=True)
+    checkpoint_path = os.path.join(weights_path, checkpoint_name + ".pth")
+    
     # Select the perception model based on config settings
     if config['vision_backbone'] == 'cnn':
         pretrained = False
@@ -166,7 +171,7 @@ if __name__ == "__main__":
         config["control_inputs"] = 768
         perception_model = VC1().to(device)
     else:
-        print(f"Perception model '{config['vision_backbone']}' not found!")
+        raise ValueError(f"Perception model '{config['vision_backbone']}' not found!")
 
     # Select the control model based on config settings
     if config['control_head'] == 'ncp' and not config['conditional']:
@@ -185,11 +190,10 @@ if __name__ == "__main__":
         print(f"Control model '{config['control_head']}' not found!")
 
     # Dataset paths
-    datasets_path = config['datasets_path']
     dataset_name = config['dataset_name']
-    full_data_path = os.path.join(datasets_path, dataset_name)
-    img_folder = os.path.join(datasets_path, dataset_name, 'rgb')
-    controls_folder = os.path.join(datasets_path, dataset_name, 'controls')
+    dataset_path = os.path.join(root_dir, "datasets", dataset_name)
+    img_folder = os.path.join(dataset_path, 'rgb')
+    controls_folder = os.path.join(dataset_path, 'controls')
 
     # Create dataloader
     if not config['conditional']:
