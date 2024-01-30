@@ -11,14 +11,15 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, ConcatDataset
 
 from models.control.NCP import NCP
-from models.control.cond_NCP import Cond_NCP_CfC
+from models.control.cond_NCP import Cond_NCP
 from models.control.LSTM import LSTM_Net
 from models.control.cond_LSTM import Cond_LSTM
 from models.control.MLP import MLP_Net
 
-from models.perception.Conv import ConvHead
-from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
+from models.perception.conv import ConvHead
+from models.perception.DinoV2 import DinoV2
+from models.perception.resnet50 import ResNet50
 
 from utils.utils import load_config, visualize_sequence, exponential_weighted_mse_loss
 from data_utils.carla_dataloader import CarlaData
@@ -75,8 +76,10 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
             features = perception_model(images)
             outputs, _ = control_model(features)
 
+            # Weight loss by steering angle
+            loss = exponential_weighted_mse_loss(outputs, controls)
+
             # Backprop
-            loss = criterion(outputs, controls)
             loss.backward()
             optimizer.step()
 
@@ -129,6 +132,19 @@ if __name__ == "__main__":
     if config['wandb']:
         wandb.init(project="CARLA", name=config["checkpoint_name"].split(".")[0])
 
+        # Log hyperparams
+        wandb.config.dataset = config['dataset_name']
+        wandb.config.epochs = config['epochs']
+        wandb.config.lr_ncp = config['lr_ncp']
+        wandb.config.batch_size = config['batch_size']
+        wandb.config.seq_len = config['seq_len']
+        wandb.config.ncp_type = config['control_cells']
+        wandb.config.ncp_inputs = config['control_inputs']
+        wandb.config.ncp_hidden = config['control_neurons']
+        wandb.config.ncp_outputs = config['control_outputs']
+        wandb.config.conditional = config['conditional']
+
+
     # Model checkpoint save path
     checkpoint_folder = config['checkpoint_folder']
     checkpoint_name = config['checkpoint_name']
@@ -136,16 +152,19 @@ if __name__ == "__main__":
 
     # Select the perception model based on config settings
     if config['vision_backbone'] == 'cnn':
-        perception_model = ConvHead(n_features=config['control_inputs']).to(device)
         pretrained = False
+        perception_model = ConvHead(n_features=config['control_inputs']).to(device)
+    elif config['vision_backbone'] == 'resnet':
+        pretrained = False
+        perception_model = ResNet50(pretrained=pretrained, n_features=config['control_inputs']).to(device)
     elif config['vision_backbone'] == 'dinov2':
-        perception_model = DinoV2()
         pretrained = True
         config["control_inputs"] = 384
+        perception_model = DinoV2().to(device)
     elif config['vision_backbone'] == 'vc1':
-        perception_model = VC1()
         pretrained = True
         config["control_inputs"] = 768
+        perception_model = VC1().to(device)
     else:
         print(f"Perception model '{config['vision_backbone']}' not found!")
 
@@ -153,7 +172,7 @@ if __name__ == "__main__":
     if config['control_head'] == 'ncp' and not config['conditional']:
         control_model = NCP(config['control_inputs'], config['control_neurons'], config['control_outputs'], cell_type=config['control_cells']).to(device)
     elif config['control_head'] == 'ncp' and config['conditional']:
-        control_model = Cond_NCP_CfC(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
+        control_model = Cond_NCP(config['control_inputs'], config['num_commands'], config['control_neurons'], config['control_outputs']).to(device)
     
     elif config['control_head'] == 'lstm' and not config['conditional']:
         control_model = LSTM_Net(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
@@ -241,12 +260,20 @@ if __name__ == "__main__":
             {'params': control_model.parameters(), 'lr': config['lr_ncp']}
         ]
     else:
+        # Previous work on NCPs has shown that training end-to-end with perception
+        # works better with lower learning rates for the vision backbone than the NCP
+        lr_ncp = config['lr_ncp']
+        lr_vision = lr_ncp/100
+        wandb.config.lr_vision = lr_vision
+
         # Train both models end-to-end with different learning rates
         optimizer_params = [
-            {'params': perception_model.parameters(), 'lr': config['lr_ncp']/10},
-            {'params': control_model.parameters(), 'lr': config['lr_ncp']}
+            {'params': perception_model.parameters(), 'lr': lr_vision},
+            {'params': control_model.parameters(), 'lr': lr_ncp}
         ]
 
     optimizer = optim.Adam(optimizer_params)
 
     train(perception_model, control_model, optimizer, dataloader, config['epochs'], checkpoint_path, pretrained, config['wandb'], config['resume'])
+    
+    wandb.finish()

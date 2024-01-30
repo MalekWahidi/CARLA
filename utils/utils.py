@@ -39,25 +39,16 @@ def visualize_sequence(batch_size, sequence_length, inputs):
     plt.tight_layout()
     plt.show()
 
-# Exponential weighted MSE loss to weight high steering/braking scenarios more heavily
-def exponential_weighted_mse_loss(outputs, labels, alpha_steering=2, alpha_braking=2, alpha_throttle=1):
-    loss_fn = nn.L1Loss()
-    
-    mse_loss = loss_fn(outputs, labels)
+# Exponential weighted MSE loss to weight high steering scenarios more heavily
+def exponential_weighted_mse_loss(outputs, labels):
+    # Calculate MSE loss for all controls
+    mse_loss = (outputs - labels) ** 2  # Calculate squared errors for each control dimension
 
-    # Calculate the weighting factors for steering and braking
-    weights_steering = torch.exp(torch.abs(labels[:, 0]) ** alpha_steering)
-    weights_braking = torch.exp(labels[:, 2] ** alpha_braking)
+    # Apply exponential weighting only to the steering angle loss
+    steering_weights = torch.exp(torch.abs(labels[:, 0]))  # Exponential weights for steering angles
+    weighted_steering_loss = mse_loss[:, 0] * steering_weights  # Apply weights only to steering loss
 
-    # Apply weights to steering and braking losses
-    steering_loss = mse_loss[:, 0] * weights_steering
-    braking_loss = mse_loss[:, 2] * weights_braking
+    # Combine the weighted steering loss with unweighted throttle and brake losses
+    total_loss = (weighted_steering_loss + mse_loss[:, 1] + mse_loss[:, 2]).mean()  # Average over all samples and controls
 
-    # Throttle loss
-    throttle_loss = mse_loss[:, 1] * alpha_throttle
-
-    # Combine the losses
-    combined_loss = steering_loss + braking_loss + throttle_loss
-
-    # Return the mean of the combined loss
-    return combined_loss.mean()
+    return total_loss

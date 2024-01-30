@@ -13,19 +13,20 @@ class VC1(nn.Module):
         self.model.eval().cuda()
 
     def forward(self, x):
-        # Input batch shape: [batch_size, sequence_length, channels, height, width]
-        b, s, c, h, w = x.size()
+        # X is a batch of videos with shape: [batches, sequences, channels, height, width]
+        batch_size, seq_len = x.size(0), x.size(1)
+        # Fuse batch and sequence dimensions before passing images through the model
+        # This way each sequence of images is also considered a batch as well
+        x = x.view(batch_size * seq_len, *x.shape[2:])
 
-        # Reshape to fuse batch and sequence dimensions
-        x = x.view(b * s, c, h, w)
-
-        x = self.preprocessing(x) # Outputs will be (B, 3, 224, 224)
+        # Preprocessed input should be (B, 3, 224, 224)
+        x = self.preprocessing(x) 
 
         # VC-1 model inference
         with torch.no_grad():
             outputs = self.model(x) # outputs is 1x768
         
-        # Seperate batch and sequence dimensions again
-        outputs = outputs.view(b, s, -1)
+        # Reshape back to batches of videos
+        outputs = outputs.view(batch_size, seq_len, -1)
 
         return outputs

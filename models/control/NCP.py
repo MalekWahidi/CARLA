@@ -10,13 +10,11 @@ class NCP(nn.Module):
         self.n_outputs = n_outputs
         wiring = AutoNCP(n_neurons, n_outputs, seed=0)
 
-        if cell_type == "cfc":
-            self.rnn = CfC(n_features, wiring, batch_first=True)
-        elif cell_type == "ltc":
+        if cell_type == "ltc":
             self.rnn = LTC(n_features, wiring, batch_first=True)
         else:
-            print("Invalid cell type for NCP model")
-
+            self.rnn = CfC(n_features, wiring, batch_first=True)
+        
     def forward(self, x, hx=None):
         x, hx = self.rnn(x, hx)
 

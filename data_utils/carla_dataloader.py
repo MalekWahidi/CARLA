@@ -23,7 +23,7 @@ class CarlaData(Dataset):
         self.controls = np.load(os.path.join(controls_folder, 'all_controls.npy'))
         self.img_files = [os.path.join(img_folder, f"{i:05d}.png") for i in range(len(self.controls))]
 
-        if self.backbone == 'dinov2':
+        if self.backbone == 'dinov2' or self.backbone == 'resnet':
             self.transform = transforms.Compose([
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
