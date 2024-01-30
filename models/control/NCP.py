@@ -1,17 +1,20 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from ncps.torch import CfC, LTC
 from ncps.wirings import AutoNCP
 
-class NCP_CfC(nn.Module):
-    def __init__(self, n_features, n_neurons, n_outputs):
+class NCP(nn.Module):
+    def __init__(self, n_features, n_neurons, n_outputs, cell_type="cfc"):
         super().__init__()
         self.n_outputs = n_outputs
         wiring = AutoNCP(n_neurons, n_outputs, seed=0)
-        self.rnn = LTC(n_features, wiring, batch_first=True)
 
+        if cell_type == "ltc":
+            self.rnn = LTC(n_features, wiring, batch_first=True)
+        else:
+            self.rnn = CfC(n_features, wiring, batch_first=True)
+        
     def forward(self, x, hx=None):
         x, hx = self.rnn(x, hx)
 

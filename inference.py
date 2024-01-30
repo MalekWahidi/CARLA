@@ -10,10 +10,11 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from models.control.NCP import NCP_CfC
-from models.perception.Conv import ConvHead
+from models.control.NCP import NCP
+from models.perception.conv import ConvHead
 from models.perception.DinoV2 import DinoV2
 from models.perception.VC1 import VC1
+from models.perception.resnet50 import ResNet50
 
 from utils.utils import load_config
 
@@ -29,9 +30,16 @@ def load_models(checkpoint_path, device, config):
         perception_model = VC1().to(device)
     elif "Dino" in config["checkpoint_name"]:
         perception_model = DinoV2().to(device)
+    elif "Res" in config["checkpoint_name"]:
+        perception_model = ResNet50().to(device)
+
+    if "LTC" in config["checkpoint_name"]:
+        cell_type = "ltc"
+    else:
+        cell_type = "cfc"
 
     # Initialize NCP model
-    ncp_model = NCP_CfC(config['control_inputs'], config['control_neurons'], config['control_outputs']).to(device)
+    ncp_model = NCP(config['control_inputs'], config['control_neurons'], config['control_outputs'], cell_type=cell_type).to(device)
 
     # Load the combined checkpoint
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -173,7 +181,7 @@ def run_closed_loop():
 
             # Extract steering, throttle, and brake values
             if config["control_outputs"] == 3:
-                steer, throttle, brake = controls
+                steer, throttle, _ = controls
                 brake = 0
             elif config["control_outputs"] == 1:
                 steer, throttle, brake = controls[0], 0.38, 0.0

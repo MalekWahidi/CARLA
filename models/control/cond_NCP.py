@@ -5,11 +5,16 @@ import torch.nn.functional as F
 from ncps.torch import CfC
 from ncps.wirings import AutoNCP
 
-class Cond_NCP_CfC(nn.Module):
-    def __init__(self, n_features, n_commands, n_neurons, n_outputs):
+class Cond_NCP(nn.Module):
+    def __init__(self, n_features, n_neurons, n_outputs, cell_type="cfc"):
         super().__init__()
-        wiring = AutoNCP(n_neurons, n_outputs)
-        self.rnn = CfC(n_features + n_commands, wiring, batch_first=True)
+        self.n_outputs = n_outputs
+        wiring = AutoNCP(n_neurons, n_outputs, seed=0)
+
+        if cell_type == "ltc":
+            self.rnn = LTC(n_features, wiring, batch_first=True)
+        else:
+            self.rnn = CfC(n_features, wiring, batch_first=True)
 
     def forward(self, features, command, hx=None):
         # Concatenate image features and high-level command along feature dim
