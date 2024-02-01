@@ -52,3 +52,13 @@ def exponential_weighted_mse_loss(outputs, labels):
     total_loss = (weighted_steering_loss + mse_loss[:, 1] + mse_loss[:, 2]).mean()  # Average over all samples and controls
 
     return total_loss
+
+# Exponential weighted MSE loss to weight high steering scenarios more heavily
+def standard_weighted_mae_loss(outputs, labels):
+    # Calculate MSE loss for all controls
+    mae_loss = abs(outputs - labels)  # Calculate squared errors for each control dimension
+
+    # Weighted sum of MAE losses
+    total_loss = ((mae_loss[:, 0] * 0.50) + (mae_loss[:, 1] * 0.45) + (mae_loss[:, 2] * 0.05)).mean()  # Average over all samples and controls
+
+    return total_loss

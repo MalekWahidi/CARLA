@@ -31,7 +31,7 @@ def load_models(checkpoint_path, device, config):
     elif "Dino" in config["checkpoint_name"]:
         perception_model = DinoV2().to(device)
     elif "Res" in config["checkpoint_name"]:
-        perception_model = ResNet50().to(device)
+        perception_model = ResNet50(n_features=config['control_inputs']).to(device)
 
     if "LTC" in config["checkpoint_name"]:
         cell_type = "ltc"
@@ -184,7 +184,7 @@ def run_closed_loop():
             # Extract steering, throttle, and brake values
             if config["control_outputs"] == 3:
                 steer, throttle, brake = controls
-                if brake < 0.001:
+                if brake < 0.5:
                     brake = 0.0
 
             elif config["control_outputs"] == 1:

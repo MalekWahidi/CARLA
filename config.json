@@ -1,11 +1,11 @@
 {
     "train": {
         "dataset_name": "town01_straight",
-        "checkpoint_name": "VC1-wMSE",
-        "resume": false,
+        "checkpoint_name": "ResNet-wMAE",
+        "resume": true,
         "wandb": true,
         
-        "vision_backbone": "vc1",
+        "vision_backbone": "resnet",
         "control_head": "ncp",
         "control_cells": "cfc",
 
@@ -15,18 +15,18 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 200,
+        "epochs": 600,
         "seq_len": 6,
         "batch_size": 4,
         "lr_ncp": 0.001,
 
-        "control_inputs": 16,
+        "control_inputs": 32,
         "control_neurons": 32,
         "control_outputs": 3
     },
 
     "inference": {
-        "checkpoint_name": "VC1-wMSE",
+        "checkpoint_name": "ResNet-wMAE",
 
         "time_step": 0.05,
 
@@ -42,7 +42,7 @@
         "cam_y": 0,
         "cam_z": 1.1,
 
-        "control_inputs": 768,
+        "control_inputs": 32,
         "control_neurons": 32,
         "control_outputs": 3
     },

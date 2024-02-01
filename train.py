@@ -21,7 +21,7 @@ from models.perception.conv import ConvHead
 from models.perception.DinoV2 import DinoV2
 from models.perception.resnet50 import ResNet50
 
-from utils.utils import load_config, visualize_sequence, exponential_weighted_mse_loss
+from utils import utils
 from data_utils.carla_dataloader import CarlaData
 from data_utils.conditional_dataloader import ConditionalCarlaData
 
@@ -47,7 +47,6 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
     control_model.train()
     running_loss = 0.0
-    criterion = nn.MSELoss()
     start_epoch = 0
 
     # If 'resume' is True continue training from saved checkpoint
@@ -77,7 +76,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
             outputs, _ = control_model(features)
 
             # Weight loss by steering angle
-            loss = exponential_weighted_mse_loss(outputs, controls)
+            loss = utils.standard_weighted_mae_loss(outputs, controls)
 
             # Backprop
             loss.backward()
@@ -124,7 +123,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
 if __name__ == "__main__":
     config_path = 'config.json'
-    config = load_config(config_path)['train']
+    config = utils.load_config(config_path)['train']
 
     # Get root dir for setting relative paths of datasets and checkpoints
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -161,7 +160,7 @@ if __name__ == "__main__":
         perception_model = ConvHead(n_features=config['control_inputs']).to(device)
     elif config['vision_backbone'] == 'resnet':
         pretrained = False
-        perception_model = ResNet50(pretrained=pretrained, n_features=config['control_inputs']).to(device)
+        perception_model = ResNet50(n_features=config['control_inputs']).to(device)
     elif config['vision_backbone'] == 'dinov2':
         pretrained = True
         config["control_inputs"] = 384

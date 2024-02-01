@@ -1,4 +1,3 @@
-- Collect dataset for driving on simple straight roads and overfit on it with normal loss function (MSE/MAE) and a CNN architecture that is not pretrained and use only steering output
 - If the previous experiments works, slightly increase difficulty of the training task to include a single turn after driving straight to check if the model can learn to steer (test model on same route as the training)
 - Train on only steering and consider going straight on all intersection for a much simpler version of the driving problem (only lane-keeping)
 - Find a robust way to weight the data samples in a balanced way based on steering angles (maybe also braking) where high values are under-represented in the dataset
