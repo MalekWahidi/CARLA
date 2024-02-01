@@ -267,7 +267,9 @@ if __name__ == "__main__":
         # works better with lower learning rates for the vision backbone than the NCP
         lr_ncp = config['lr_ncp']
         lr_vision = lr_ncp/100
-        wandb.config.lr_vision = lr_vision
+        
+        if config['wandb']:
+            wandb.config.lr_vision = lr_vision
 
         # Train both models end-to-end with different learning rates
         optimizer_params = [
