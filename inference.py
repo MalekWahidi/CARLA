@@ -28,8 +28,10 @@ def load_models(checkpoint_path, device, config):
         perception_model = ConvHead(n_features=config['control_inputs']).to(device)
     elif "VC" in config["checkpoint_name"]:
         perception_model = VC1().to(device)
+        config["control_inputs"] = 768
     elif "Dino" in config["checkpoint_name"]:
         perception_model = DinoV2().to(device)
+        config["control_inputs"] = 384
     elif "Res" in config["checkpoint_name"]:
         perception_model = ResNet50(n_features=config['control_inputs']).to(device)
 
