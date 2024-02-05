@@ -1,9 +1,9 @@
 {
     "train": {
-        "dataset_name": "town01_lanekeep",
-        "checkpoint_name": "ResNet-wMAE-lanekeep",
+        "dataset_name": "town01_straight_noise",
+        "checkpoint_name": "ResNet-wMAE-straight",
         "resume": false,
-        "wandb": false,
+        "wandb": true,
         
         "vision_backbone": "resnet",
         "control_head": "ncp",
@@ -15,9 +15,9 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 300,
-        "seq_len": 20,
-        "batch_size": 10,
+        "epochs": 100,
+        "seq_len": 8,
+        "batch_size": 4,
         "lr_ncp": 0.001,
 
         "control_inputs": 32,
@@ -26,14 +26,14 @@
     },
 
     "inference": {
-        "checkpoint_name": "ResNet-wMAE",
+        "checkpoint_name": "ResNet-wMAE-straight",
 
         "time_step": 0.05,
 
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-30, -58, 0.5],
+        "spawn_point": [-80, 135, 0.5],
 
         "cam_w": "448",
         "cam_h": "448",
@@ -48,15 +48,15 @@
     },
 
     "data_collection": {
-        "dataset_name": "town01_turn_left",
+        "dataset_name": "town01_straight_noise",
 
         "time_step": 0.05,
-        "max_steps": 1000,
+        "max_steps": 400,
 
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-30, -60, 0.5],
+        "spawn_point": [-80, 135, 0.5],
 
         "cam_w": "448",
         "cam_h": "448",

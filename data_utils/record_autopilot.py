@@ -39,6 +39,34 @@ def save_image(counter, img, img_folder, config):
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
     cv2.imwrite(img_file, img)
 
+def apply_perturbations(steer, throttle, brake, perturbation_chance=0.05, max_steer_perturb=0.2, max_throttle_perturb=0.1, max_brake_perturb=0.1):
+    """
+    Apply random perturbations to steer, throttle, and brake with a given chance.
+    
+    :param steer: Original steering value
+    :param throttle: Original throttle value
+    :param brake: Original brake value
+    :param perturbation_chance: Chance to apply perturbation
+    :param max_steer_perturb: Maximum perturbation that can be applied to steering
+    :param max_throttle_perturb: Maximum perturbation that can be applied to throttle
+    :param max_brake_perturb: Maximum perturbation that can be applied to brake
+
+    :return: Tuple of (perturbed_steer, perturbed_throttle, perturbed_brake)
+    """
+    if random.random() < perturbation_chance:
+        perturbed_steer = steer + random.uniform(-max_steer_perturb, max_steer_perturb)
+        perturbed_throttle = throttle + random.uniform(-max_throttle_perturb, max_throttle_perturb)
+        perturbed_brake = brake + random.uniform(-max_brake_perturb, max_brake_perturb)
+        
+        # Ensure values remain within acceptable ranges
+        perturbed_steer = np.clip(perturbed_steer, -1.0, 1.0)
+        perturbed_throttle = np.clip(perturbed_throttle, 0.0, 1.0)
+        perturbed_brake = np.clip(perturbed_brake, 0.0, 1.0)
+        
+        return perturbed_steer, perturbed_throttle, perturbed_brake
+    else:
+        return steer, throttle, brake
+
 def run_simulation():
     try:
         config = load_config('config.json')['data_collection']
@@ -157,7 +185,14 @@ def run_simulation():
             
             # Collect output control data for training supervision
             controls = ego_car.get_control()
-            outputs = [controls.steer, controls.throttle, controls.brake]
+
+            # Apply perturbations with a 5% chance
+            perturbed_controls = apply_perturbations(controls.steer, controls.throttle, controls.brake)
+
+            # Apply the perturbed controls to the car
+            ego_car.apply_control(carla.VehicleControl(steer=perturbed_controls[0], throttle=perturbed_controls[1], brake=perturbed_controls[2]))
+
+            outputs = [perturbed_controls[0], perturbed_controls[1], perturbed_controls[2]]
 
             control_data.append(outputs)
             

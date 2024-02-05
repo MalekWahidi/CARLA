@@ -12,6 +12,6 @@ spectator = world.get_spectator()
 while True:
     # Get the location of the spectator
     location = spectator.get_location()
-    print(f"Spectator Location: x={location.x}, y={location.y}, z={location.z}", end='\r', flush=True)
+    print(f"Spectator Coordinates: x={location.x:.2f}, y={location.y:.2f}, z={location.z:.2f}", end='\r', flush=True)
 
     time.sleep(0.1)

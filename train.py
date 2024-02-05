@@ -68,7 +68,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
             # visualize_sequence(images.shape[0], images.shape[1], images)
 
-            # Reset gradients and hidden state for next iteration
+            # Reset gradients for next iteration
             optimizer.zero_grad(set_to_none=True)
 
             # Inference
