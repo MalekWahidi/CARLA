@@ -48,7 +48,7 @@
     },
 
     "data_collection": {
-        "dataset_name": "town01_straight_noise",
+        "dataset_name": "town01_straight",
 
         "time_step": 0.05,
         "max_steps": 400,
@@ -56,7 +56,7 @@
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-80, 135, 0.5],
+        "spawn_point": [-70, 140, 0.5],
 
         "cam_w": "448",
         "cam_h": "448",

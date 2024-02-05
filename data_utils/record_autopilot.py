@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import queue
 import random
 from tqdm import tqdm
@@ -15,6 +16,23 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 from utils.utils import load_config
+
+
+def save_metadata(config, root_path, filename="metadata.json"):
+    """
+    Saves the given configuration dictionary as a JSON file in the dataset root directory.
+
+    :param config: Dictionary containing hyperparameters and configuration settings.
+    :param dataset_root_dir: The root directory where the dataset is stored.
+    :param filename: The name of the file to save the configuration to. Default is 'config_metadata.json'.
+    """
+
+    # Define the full path to the configuration file
+    file_path = os.path.join(root_path, filename)
+    
+    # Serialize config dictionary to JSON and write it to the file
+    with open(file_path, 'w') as f:
+        json.dump(config, f, indent=4)  # Use `indent` for pretty-printing
 
 
 def process_img(img, cam_w, cam_h):
@@ -90,6 +108,14 @@ def run_simulation():
         settings.fixed_delta_seconds = config["time_step"]
         world.apply_settings(settings)
         traffic_manager.set_synchronous_mode(True)
+
+        # Make traffic manager and weather conditions reprodiucible
+        traffic_manager.set_random_device_seed(0)
+        weather = carla.WeatherParameters(
+            cloudiness=0.0,
+            precipitation=0.0,
+            sun_altitude_angle=90.0)
+        world.set_weather(weather)
 
         # Store all spawn points available for this map
         spawn_points = m.get_spawn_points()
@@ -172,9 +198,10 @@ def run_simulation():
         ego_cam.listen(image_queue.put)
 
         # Define path to store rgb frames and control data
-        datasets_path = os.path.join(current_dir, '..', 'datasets')
-        rgb_path = os.path.join(datasets_path, config["dataset_name"], "rgb")
-        controls_path = os.path.join(datasets_path, config["dataset_name"], "controls")
+        datasets_parent = os.path.join(current_dir, '..', 'datasets')
+        dataset_path = os.path.join(datasets_parent, config["dataset_name"])
+        rgb_path = os.path.join(dataset_path, "rgb")
+        controls_path = os.path.join(dataset_path, "controls")
         
         # Create the data dirs if they don't exist yet
         os.makedirs(rgb_path, exist_ok=True)
@@ -202,6 +229,8 @@ def run_simulation():
         # Save all control data to a single npy file at the end
         np.save(f"{controls_path}/all_controls.npy", control_data)
 
+        save_metadata(config, dataset_path)
+
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -222,4 +251,8 @@ def run_simulation():
 
 
 if __name__ == '__main__':
+    # Set random seeds for reproducibility
+    random.seed(0)
+    np.random.seed(0)
+
     run_simulation()
