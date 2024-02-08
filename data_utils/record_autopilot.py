@@ -57,7 +57,7 @@ def save_image(counter, img, img_folder, config):
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
     cv2.imwrite(img_file, img)
 
-def apply_perturbations(steer, throttle, brake, perturbation_chance=0.05, max_steer_perturb=0.2, max_throttle_perturb=0.1, max_brake_perturb=0.1):
+def apply_perturbations(steer, throttle, brake, perturbation_chance=0.01, max_steer_perturb=0.5, max_throttle_perturb=0.1, max_brake_perturb=0.0):
     """
     Apply random perturbations to steer, throttle, and brake with a given chance.
     
@@ -73,15 +73,15 @@ def apply_perturbations(steer, throttle, brake, perturbation_chance=0.05, max_st
     """
     if random.random() < perturbation_chance:
         perturbed_steer = steer + random.uniform(-max_steer_perturb, max_steer_perturb)
-        perturbed_throttle = throttle + random.uniform(-max_throttle_perturb, max_throttle_perturb)
-        perturbed_brake = brake + random.uniform(-max_brake_perturb, max_brake_perturb)
+        # perturbed_throttle = throttle + random.uniform(-max_throttle_perturb, max_throttle_perturb)
+        # perturbed_brake = brake + random.uniform(-max_brake_perturb, max_brake_perturb)
         
         # Ensure values remain within acceptable ranges
         perturbed_steer = np.clip(perturbed_steer, -1.0, 1.0)
-        perturbed_throttle = np.clip(perturbed_throttle, 0.0, 1.0)
-        perturbed_brake = np.clip(perturbed_brake, 0.0, 1.0)
+        # perturbed_throttle = np.clip(perturbed_throttle, 0.0, 1.0)
+        # perturbed_brake = np.clip(perturbed_brake, 0.0, 1.0)
         
-        return perturbed_steer, perturbed_throttle, perturbed_brake
+        return perturbed_steer, throttle, brake
     else:
         return steer, throttle, brake
 
@@ -94,13 +94,21 @@ def run_simulation():
 
         # Initialize CARLA client
         client = carla.Client('localhost', 2000)
-        client.set_timeout(2.0)
+        client.set_timeout(5.0)
 
         # Initialize the world, blueprint, map, and traffic manager objects
         world = client.get_world()
         bp = world.get_blueprint_library()
         m = world.get_map()
         traffic_manager = client.get_trafficmanager()
+
+        # Toggle all buildings off
+        world.unload_map_layer(carla.MapLayer.Buildings)
+        world.unload_map_layer(carla.MapLayer.ParkedVehicles)
+        world.unload_map_layer(carla.MapLayer.Props)
+        world.unload_map_layer(carla.MapLayer.StreetLights)
+        world.unload_map_layer(carla.MapLayer.Foliage)
+        world.unload_map_layer(carla.MapLayer.Foliage)
 
         # Set everything to sync mode
         settings = world.get_settings()
