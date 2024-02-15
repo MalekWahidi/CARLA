@@ -48,6 +48,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     control_model.train()
     running_loss = 0.0
     start_epoch = 0
+    train_step = 0
 
     # If 'resume' is True continue training from saved checkpoint
     if resume and os.path.exists(checkpoint_path):
@@ -62,6 +63,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
         pbar = tqdm(total=len(trainloader), desc=f"Epoch {epoch+1}/{num_epochs}")
 
         for i, (images, controls) in enumerate(trainloader):
+
             # Convert tensors to float32 and move to GPU
             images = images.float().cuda(non_blocking=True)
             controls = controls.float().cuda(non_blocking=True)
@@ -77,29 +79,29 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
             # Weight loss by steering angle
             loss = utils.standard_weighted_mae_loss(outputs, controls)
+            # loss = nn.functional.mse_loss(outputs, controls)
 
             # Backprop
             loss.backward()
             optimizer.step()
 
             running_loss += loss.item()
+            running_average_loss = running_loss / (i + 1)  # Calculate running average loss
 
             if wandb_enable:
-                # Log trian loss after each batch
-                wandb.log({
-                    "train loss": loss.item(),
-                    "epoch": epoch
-                }, commit=False)  # Delay logging until all items are ready
+                # Log batch loss with training step
+                wandb.log({"batch loss": loss.item(), "train_step": train_step, "epoch": epoch}, commit=True)
+                train_step += 1  # Increment training step counter
 
             # Update progress bar
-            pbar.set_description(f"Epoch {epoch+1} - Running Average Loss: {running_loss / (i + 1):.6f}")
+            pbar.set_description(f"Epoch {epoch+1} - Running Avg Loss: {running_average_loss:.4f}")
             pbar.update(1)
 
         if wandb_enable:
             # Log average loss after each epoch
             average_loss = running_loss / len(trainloader)
             wandb.log({
-                "average loss": average_loss,
+                "epoch loss": average_loss,
                 "epoch": epoch
             })
 
@@ -250,7 +252,7 @@ if __name__ == "__main__":
         print(f"Device: CPU")
         print(f"Name: {platform.uname().processor}")
         print(f"Number of cores: {psutil.cpu_count(logical=False)}")
-    print()
+    print()  
     
     # Pretrained perception vs end-to-end training
     if pretrained:

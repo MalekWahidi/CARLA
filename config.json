@@ -1,11 +1,11 @@
 {
     "train": {
         "dataset_name": "town01_straight_minimal",
-        "checkpoint_name": "VC1-wMAE-straight-minimal",
-        "resume": true,
+        "checkpoint_name": "ResNet-wMAE-straight-minimal",
+        "resume": false,
         "wandb": true,
         
-        "vision_backbone": "vc1",
+        "vision_backbone": "resnet",
         "control_head": "ncp",
         "control_cells": "cfc",
 
@@ -15,9 +15,9 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 300,
-        "seq_len": 20,
-        "batch_size": 5,
+        "epochs": 200,
+        "seq_len": 8,
+        "batch_size": 16,
         "lr_ncp": 0.001,
 
         "control_inputs": 32,
@@ -26,14 +26,14 @@
     },
 
     "inference": {
-        "checkpoint_name": "VC1-wMAE-straight-minimal",
+        "checkpoint_name": "VC1-MSE-straight-minimal",
 
         "time_step": 0.05,
 
         "num_ped": 0,
         "num_cars": 0,
 
-        "spawn_point": [-80, 135, 0.5],
+        "spawn_point": [-70, 140, 0.5],
 
         "cam_w": "448",
         "cam_h": "448",
