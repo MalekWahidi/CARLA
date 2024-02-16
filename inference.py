@@ -96,7 +96,7 @@ def run_closed_loop():
 
         # Initialize CARLA client
         client = carla.Client('localhost', 2000)
-        client.set_timeout(2.0)
+        client.set_timeout(5.0)
 
         # Load trained model to GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

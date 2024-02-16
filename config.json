@@ -26,7 +26,7 @@
     },
 
     "inference": {
-        "checkpoint_name": "VC1-MSE-straight-minimal",
+        "checkpoint_name": "ResNet-wMAE-straight-minimal",
 
         "time_step": 0.05,
 
