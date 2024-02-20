@@ -43,21 +43,24 @@ def load_model(config_path, checkpoint_path, device):
 
     return perception_model, control_model
 
-def generate_saliency(perception_model, ncp_model, input_image):
+def generate_saliency(perception_model, input_image):
     perception_model.eval()
-    ncp_model.eval()
-
     input_image.requires_grad = True
 
-    # Model inference with gradient computation
+    # Print to check the shape; assuming shape [1, 1, 32] based on your output
+    print("Features shape before squeezing:", perception_model(input_image).shape)
+
+    # Define the target feature index
     features = perception_model(input_image)
-    controls, _ = ncp_model(features)
-
-    # Initialize Saliency object with the combined model function
-    saliency = Saliency(lambda img: ncp_model(perception_model(img)[0, 0])[0][0, 0])
-
-    # Generate saliency map
-    saliency_map = saliency.attribute(input_image, target=0)  # Target index is 0 since we're already focusing on a specific output
+    
+    # Adjust the lambda function to correctly handle the output shape
+    # Assuming the desired feature is within a tensor of shape [1, 1, 32], 
+    # you need to squeeze out the singleton dimensions before indexing
+    saliency = Saliency(lambda img: perception_model(img).squeeze())
+    
+    # Generate saliency map with respect to the target class index
+    # The target is now an integer index, assuming the squeezed output is a 1D tensor
+    saliency_map = saliency.attribute(input_image, target=features.squeeze().squeeze())
     saliency_map = saliency_map.detach().cpu().numpy()
 
     return saliency_map
@@ -88,7 +91,7 @@ if __name__ == "__main__":
     perception_model, ncp_model = load_model(config_path, checkpoint_path, device)
 
     # Load an example input image
-    img_path = 'datasets/town01_straight_minimal/rgb/00000.png'
+    img_path = 'datasets/town01_straight/rgb/00000.png'
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -96,5 +99,5 @@ if __name__ == "__main__":
     img = transform(Image.open(img_path)).unsqueeze(0).unsqueeze(0).to(device)
     
     # Generate and visualize saliency map
-    saliency_map = generate_saliency(perception_model, ncp_model, img)
+    saliency_map = generate_saliency(perception_model, img)
     visualize_saliency(saliency_map, img, save_path='saliency_map.png')

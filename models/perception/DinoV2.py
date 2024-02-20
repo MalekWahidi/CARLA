@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
+import torchsummary
 from torchvision import transforms
+
 from PIL import Image
 
+
 class DinoV2(nn.Module):
-    def __init__(self, model_name='facebook/dinov2-small'):
+    def __init__(self):
         super().__init__()
 
         # Load DinoV2 Small (with Registers)
@@ -26,3 +29,8 @@ class DinoV2(nn.Module):
         outputs = outputs.view(batch_size, seq_len, -1)
 
         return outputs
+
+if __name__ == '__main__':
+    # Print model summary
+    model = DinoV2().to('cuda')
+    torchsummary.summary(model, (1, 3, 224, 224))

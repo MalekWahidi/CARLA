@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torchvision.models as models
+import torchsummary
+
 
 class ResNet50(nn.Module):
     def __init__(self, n_features=128):
@@ -22,3 +24,8 @@ class ResNet50(nn.Module):
         x = x.view(batch_size, seq_len, -1)
 
         return x
+
+if __name__ == '__main__':
+    # Print model summary
+    model = ResNet50().to('cuda')
+    torchsummary.summary(model, (1, 3, 224, 224))

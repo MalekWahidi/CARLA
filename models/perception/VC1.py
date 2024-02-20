@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
+import torchsummary
 
 from PIL import Image
 from utils import vc1_utils
 
+
 class VC1(nn.Module):
-    def __init__(self, model_name='facebook/dinov2-small'):
+    def __init__(self):
         super().__init__()
 
         # Load VC-1 (base)
@@ -30,3 +32,8 @@ class VC1(nn.Module):
         outputs = outputs.view(batch_size, seq_len, -1)
 
         return outputs
+
+if __name__ == '__main__':
+    # Print model summary
+    model = VC1().to('cuda')
+    torchsummary.summary(model, (1, 3, 224, 224))

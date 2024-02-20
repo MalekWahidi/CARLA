@@ -46,6 +46,11 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
         perception_model.train()
 
     control_model.train()
+
+    if wandb_enable:
+        wandb.watch(perception_model, log='all', log_freq=5)
+        wandb.watch(control_model, log='all')
+
     running_loss = 0.0
     start_epoch = 0
     train_step = 0

@@ -15,13 +15,13 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 200,
-        "seq_len": 8,
-        "batch_size": 16,
+        "epochs": 400,
+        "seq_len": 6,
+        "batch_size": 12,
         "lr_ncp": 0.001,
 
         "control_inputs": 32,
-        "control_neurons": 32,
+        "control_neurons": 64,
         "control_outputs": 3
     },
 

@@ -20,7 +20,7 @@ from utils.utils import load_config
 
 def save_metadata(config, root_path, filename="metadata.json"):
     """
-    Saves the given configuration dictionary as a JSON file in the dataset root directory.
+    Saves metadata from the config dict in the dataset root dir
 
     :param config: Dictionary containing hyperparameters and configuration settings.
     :param dataset_root_dir: The root directory where the dataset is stored.
