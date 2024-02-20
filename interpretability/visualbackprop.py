@@ -158,33 +158,37 @@ if __name__ == "__main__":
     perception_model, ncp_model = load_model(config_path, checkpoint_path, device)
     model_vis = ResnetVisualizer(perception_model.eval()).to(device)
 
-    # Load an example input image
-    img_path = 'datasets/town01_straight/rgb/00200.png'
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    img = transform(Image.open(img_path)).unsqueeze(0).to(device)
+    for i in range(300, 400):
+        # Load an example input image
+        img_path = f'datasets/town01_straight/rgb/{i:05d}.png'
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+        ])
+        img = transform(Image.open(img_path)).unsqueeze(0).to(device)
 
-    with torch.no_grad():
-        _, vis = model_vis(img)
+        with torch.no_grad():
+            _, vis = model_vis(img)
 
-    # Visualization
-    vis = vis.squeeze().cpu().numpy()  # Adjust dimensions as needed
-    vis = np.interp(vis, (vis.min(), vis.max()), (0, 1))
+        # Visualization
+        vis = vis.squeeze().cpu().numpy()  # Adjust dimensions as needed
+        vis = np.interp(vis, (vis.min(), vis.max()), (0, 1))
 
-    img = img.squeeze().cpu().numpy().transpose(1, 2, 0)
-    img = np.interp(img, (img.min(), img.max()), (0, 1))
+        img = img.squeeze().cpu().numpy().transpose(1, 2, 0)
+        img = np.interp(img, (img.min(), img.max()), (0, 1))
 
-    # Display images
-    plt.subplot(1, 2, 1)
-    plt.imshow(img)
-    plt.title("Input Image")
-    plt.axis('off')
+        # Display images
+        plt.subplot(1, 2, 1)
+        plt.imshow(img)
+        plt.title("Input Image")
+        plt.axis('off')
 
-    plt.subplot(1, 2, 2)
-    plt.imshow(vis, cmap='bwr')
-    plt.title("Visualization")
-    plt.axis('off')
+        plt.subplot(1, 2, 2)
+        plt.imshow(vis, cmap='bwr')
+        plt.title("Visualization")
+        plt.axis('off')
+
+        plt.draw()
+        plt.pause(0.05)  # Pause for a brief moment to create a video effect
 
     plt.show()
