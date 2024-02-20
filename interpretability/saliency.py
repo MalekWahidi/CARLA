@@ -13,11 +13,9 @@ from torchvision.utils import save_image
 from captum.attr import Saliency
 from captum.attr import visualization as viz
 
-# Add the parent directory to the path to import the models and utils
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from models.perception.resnet50 import ResNet50  
 from models.control.NCP import NCP
-from utils import utils  
+from utils import utils
 
 
 def load_model(config_path, checkpoint_path, device):
