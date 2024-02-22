@@ -57,7 +57,7 @@ def save_image(counter, img, img_folder, config):
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
     cv2.imwrite(img_file, img)
 
-def apply_perturbations(steer, throttle, brake, perturbation_chance=0.01, max_steer_perturb=0.5, max_throttle_perturb=0.1, max_brake_perturb=0.0):
+def apply_perturbations(steer, throttle, brake, perturbation_chance=0.001, max_steer_perturb=0.6, max_throttle_perturb=0.1, max_brake_perturb=0.0):
     """
     Apply random perturbations to steer, throttle, and brake with a given chance.
     

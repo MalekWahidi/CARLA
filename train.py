@@ -48,10 +48,10 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     control_model.train()
 
     if wandb_enable:
-        wandb.watch(perception_model, log='all', log_freq=5)
+        wandb.watch(perception_model, log='all', log_freq=100)
         wandb.watch(control_model, log='all')
 
-    running_loss = 0.0
+    cumulative_loss = 0.0
     start_epoch = 0
     train_step = 0
 
@@ -90,8 +90,8 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
-            running_average_loss = running_loss / (i + 1)  # Calculate running average loss
+            cumulative_loss += loss.item()
+            running_average_loss = cumulative_loss / (i + 1)  # Calculate running average loss (cumulative/n_batches)
 
             if wandb_enable:
                 # Log batch loss with training step
@@ -104,7 +104,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
         if wandb_enable:
             # Log average loss after each epoch
-            average_loss = running_loss / len(trainloader)
+            average_loss = cumulative_loss / len(trainloader)
             wandb.log({
                 "epoch loss": average_loss,
                 "epoch": epoch
@@ -123,7 +123,7 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
             print(f"Checkpoint saved at epoch {epoch + 1}")
 
         pbar.close()
-        running_loss = 0.0
+        cumulative_loss = 0.0 # Reset cumulative loss for next epoch
     
     print(f"Training completed!")
 
