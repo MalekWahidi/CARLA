@@ -43,7 +43,7 @@
         "cam_z": 1.1,
 
         "control_inputs": 32,
-        "control_neurons": 32,
+        "control_neurons": 64,
         "control_outputs": 3
     },
 

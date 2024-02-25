@@ -177,36 +177,47 @@ def run_closed_loop():
         # Initialize NCP hidden state
         hx = None
 
+        autopilot_counter = 0
+
         while True:
             world.tick()
-            
+
             # Preprocess image for model input and move to GPU
             img = process_img(image_queue.get(), int(config["cam_w"]), int(config["cam_h"])).to(device)
 
-            # Model inference
-            with torch.no_grad():
-                features = perception_model(img)
-                controls, hx = ncp_model(features, hx)
+            # For the first 10 ticks, use autopilot to control the car
+            if autopilot_counter < 100:
+                ego_car.set_autopilot(True)
+                print("autopilot", end='\r', flush=True)
+            else:
+                ego_car.set_autopilot(False)
 
-            # Remove batch and time dimensions
-            controls = controls.squeeze(0).squeeze(0).cpu().numpy()
+                # Model inference
+                with torch.no_grad():
+                    features = perception_model(img)
+                    controls, hx = ncp_model(features, hx)
 
-            # Extract steering, throttle, and brake values
-            if config["control_outputs"] == 3:
-                steer, throttle, brake = controls
-                if brake < 0.5:
-                    brake = 0.0
+                # Remove batch and time dimensions
+                controls = controls.squeeze(0).squeeze(0).cpu().numpy()
 
-            elif config["control_outputs"] == 1:
-                steer, throttle, brake = controls[0], 0.4, 0.0
+                # Extract steering, throttle, and brake values
+                if config["control_outputs"] == 3:
+                    steer, throttle, brake = controls
+                    if brake < 0.5:
+                        brake = 0.0
 
-            print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
+                elif config["control_outputs"] == 1:
+                    steer, throttle, brake = controls[0], 0.4, 0.0
 
-            # Apply model output to control the ego car
-            control_command = carla.VehicleControl(steer=float(steer),
-                                                   throttle=float(throttle),
-                                                   brake=float(brake))
-            ego_car.apply_control(control_command)
+                print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
+
+                # Apply model output to control the ego car
+                control_command = carla.VehicleControl(steer=float(steer),
+                                                    throttle=float(throttle),
+                                                    brake=float(brake))
+                ego_car.apply_control(control_command)
+
+            autopilot_counter += 1
 
     except Exception as e:
         print(f"ERROR: {e}")
