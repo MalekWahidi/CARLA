@@ -151,7 +151,7 @@ class BottleneckVisualizer(nn.Module):
 if __name__ == "__main__":
     # Configuration and checkpoint
     config_path = 'config.json'
-    checkpoint_path = 'weights/e2e/ResNet-wMAE-straight-minimal.pth'
+    checkpoint_path = 'weights/e2e/ResNet-wMAE-lanekeep-minimal.pth'
     device = torch.device("cuda")
 
     # Load model
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     for i in range(300, 400):
         # Load an example input image
-        img_path = f'datasets/town01_straight/rgb/{i:05d}.png'
+        img_path = f'datasets/town01_10min_lanekeep_minimal/rgb/{i:05d}.png'
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),

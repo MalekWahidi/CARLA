@@ -48,8 +48,8 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     control_model.train()
 
     if wandb_enable:
-        wandb.watch(perception_model, log='all', log_freq=100)
-        wandb.watch(control_model, log='all')
+        wandb.watch(perception_model, log='gradients', log_freq=100)
+        wandb.watch(control_model, log='gradients')
 
     cumulative_loss = 0.0
     start_epoch = 0

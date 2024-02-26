@@ -2,7 +2,7 @@
     "train": {
         "dataset_name": "town01_10min_lanekeep_minimal",
         "checkpoint_name": "ResNet-wMAE-lanekeep-minimal",
-        "resume": false,
+        "resume": true,
         "wandb": true,
         
         "vision_backbone": "resnet",
@@ -15,18 +15,18 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 100,
-        "seq_len": 10,
+        "epochs": 200,
+        "seq_len": 8,
         "batch_size": 20,
         "lr_ncp": 0.001,
 
         "control_inputs": 32,
-        "control_neurons": 32,
+        "control_neurons": 128,
         "control_outputs": 3
     },
 
     "inference": {
-        "checkpoint_name": "VC1-wMAE-lanekeep-minimal",
+        "checkpoint_name": "ResNet-wMAE-lanekeep-minimal",
 
         "time_step": 0.05,
 
@@ -43,7 +43,7 @@
         "cam_z": 1.1,
 
         "control_inputs": 32,
-        "control_neurons": 32,
+        "control_neurons": 128,
         "control_outputs": 3
     },
 
