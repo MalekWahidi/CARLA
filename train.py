@@ -263,6 +263,8 @@ if __name__ == "__main__":
         print(f"Name: {platform.uname().processor}")
         print(f"Number of cores: {psutil.cpu_count(logical=False)}")
     print()  
+
+    pretrained=False # Added to try finetuning PVRs
     
     # Pretrained perception vs end-to-end training
     if pretrained:
