@@ -15,7 +15,12 @@ def load_and_inspect(file_path):
 
     # Display some basic info
     print("Shape of the Data:", controls_data.shape)
-    print("First few entries:\n", controls_data[0:200])
+    # Assuming controls_data is a list or array of float values
+    print("First few entries:")
+    for steer, throttle, brake in controls_data:  
+        print(f"{steer:.6f}, {throttle:.6f}, {brake:.6f}")
+
+    # print(f"First few entries:{controls_data[0:200]:.6f}\n", )
     print("\nStats:")
     print("Mean Steer:", np.mean(controls_data[:, 0]))
     print("Mean Throttle:", np.mean(controls_data[:, 1]))

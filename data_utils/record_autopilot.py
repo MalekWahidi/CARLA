@@ -57,7 +57,7 @@ def save_image(counter, img, img_folder, config):
     img_file = os.path.join(img_folder, f"{counter:05d}.png")
     cv2.imwrite(img_file, img)
 
-def apply_perturbations(steer, throttle, brake, perturbation_chance=0.001, max_steer_perturb=0.6, max_throttle_perturb=0.1, max_brake_perturb=0.0):
+def apply_perturbations(steer, throttle, brake, perturbation_chance=0.01, max_steer_perturb=1, max_throttle_perturb=0.1, max_brake_perturb=0.0):
     """
     Apply random perturbations to steer, throttle, and brake with a given chance.
     
@@ -103,12 +103,13 @@ def run_simulation():
         traffic_manager = client.get_trafficmanager()
 
         # Toggle all buildings off
-        world.unload_map_layer(carla.MapLayer.Buildings)
-        world.unload_map_layer(carla.MapLayer.ParkedVehicles)
-        world.unload_map_layer(carla.MapLayer.Props)
-        world.unload_map_layer(carla.MapLayer.StreetLights)
-        world.unload_map_layer(carla.MapLayer.Foliage)
-        world.unload_map_layer(carla.MapLayer.Foliage)
+        if config["minimal"]:
+            world.unload_map_layer(carla.MapLayer.Buildings)
+            world.unload_map_layer(carla.MapLayer.ParkedVehicles)
+            world.unload_map_layer(carla.MapLayer.Props)
+            world.unload_map_layer(carla.MapLayer.StreetLights)
+            world.unload_map_layer(carla.MapLayer.Foliage)
+            world.unload_map_layer(carla.MapLayer.Foliage)
 
         # Set everything to sync mode
         settings = world.get_settings()
@@ -220,21 +221,22 @@ def run_simulation():
             
             # Collect output control data for training supervision
             controls = ego_car.get_control()
+            controls = [controls.steer, controls.throttle, controls.brake]
 
-            # Apply perturbations with a 5% chance
-            perturbed_controls = apply_perturbations(controls.steer, controls.throttle, controls.brake)
+            if config["noise"]:
+                # Apply perturbations with a 5% chance
+                controls = apply_perturbations(controls[0], controls[1], controls[2])
 
-            # Apply the perturbed controls to the car
-            ego_car.apply_control(carla.VehicleControl(steer=perturbed_controls[0], throttle=perturbed_controls[1], brake=perturbed_controls[2]))
+                # Apply the perturbed controls to the car
+                ego_car.apply_control(carla.VehicleControl(steer=controls[0], throttle=controls[1], brake=controls[2]))
 
-            outputs = [perturbed_controls[0], perturbed_controls[1], perturbed_controls[2]]
-
-            control_data.append(outputs)
+            # Save control data to list
+            control_data.append(controls)
             
             # Process image frame and save as PNG
             save_image(i, image_queue.get(), rgb_path, config)
 
-        # Save all control data to a single npy file at the end
+        # Save all control data in a single npy file at the end
         np.save(f"{controls_path}/all_controls.npy", control_data)
 
         save_metadata(config, dataset_path)

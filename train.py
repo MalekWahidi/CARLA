@@ -55,13 +55,14 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
     start_epoch = 0
     train_step = 0
 
-    # If 'resume' is True continue training from saved checkpoint
+    # Resume previous training run from saved checkpoint
     if resume and os.path.exists(checkpoint_path):
         print("Resuming from saved checkpoint...")
         checkpoint = torch.load(checkpoint_path)
         perception_model.load_state_dict(checkpoint['perception_model'])
         control_model.load_state_dict(checkpoint['ncp_model'])
         start_epoch = checkpoint['epoch'] + 1  # Resume from the next epoch
+        train_step = checkpoint['train_step'] + 1 # Resume from the next training step
         optimizer.load_state_dict(checkpoint['optimizer'])
 
     for epoch in range(start_epoch, num_epochs):
@@ -124,6 +125,10 @@ def train(perception_model, control_model, optimizer, trainloader, num_epochs, c
 
         pbar.close()
         cumulative_loss = 0.0 # Reset cumulative loss for next epoch
+
+    # Log final train_step value to wandb for reference in case of resumed training later on
+    if wandb_enable:
+        wandb.config.train_step = train_step
     
     print(f"Training completed!")
 

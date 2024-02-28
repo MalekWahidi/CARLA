@@ -1,8 +1,8 @@
 {
     "train": {
-        "dataset_name": "town01_10min_lanekeep_minimal",
-        "checkpoint_name": "ResNet-wMAE-lanekeep-minimal",
-        "resume": true,
+        "dataset_name": "town01_straight",
+        "checkpoint_name": "pre-ResNet-wMAE-straight",
+        "resume": false,
         "wandb": true,
         
         "vision_backbone": "resnet",
@@ -15,10 +15,10 @@
         "start_idx": 0,
         "end_idx": null,
 
-        "epochs": 200,
+        "epochs": 400,
         "seq_len": 8,
         "batch_size": 20,
-        "lr_ncp": 0.001,
+        "lr_ncp": 0.01,
 
         "control_inputs": 32,
         "control_neurons": 128,
@@ -26,7 +26,7 @@
     },
 
     "inference": {
-        "checkpoint_name": "ResNet-wMAE-lanekeep-minimal",
+        "checkpoint_name": "ResNet-wMAE-straight-minimal",
 
         "time_step": 0.05,
 
@@ -48,10 +48,12 @@
     },
 
     "data_collection": {
-        "dataset_name": "town01_10min_lanekeep_minimal",
+        "dataset_name": "town01_",
+        "minimal": false,
+        "noise": true,
 
         "time_step": 0.05,
-        "max_steps": 12000,
+        "max_steps": 360,
 
         "num_ped": 0,
         "num_cars": 0,

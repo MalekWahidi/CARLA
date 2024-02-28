@@ -20,7 +20,7 @@ def load_model(config_path, checkpoint_path, device):
 
     # Initialize the perception model
     if config['vision_backbone'] == 'resnet':
-        perception_model = ResNet50(n_features=config['control_inputs']).to(device)
+        perception_model = ResNet50(n_features=1000).to(device)
     else:
         raise NotImplementedError(f"Model '{config['vision_backbone']}' not supported")
 
@@ -31,9 +31,9 @@ def load_model(config_path, checkpoint_path, device):
         raise NotImplementedError(f"Control model '{config['control_head']}' not supported")
 
     # Load the trained model weights
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    perception_model.load_state_dict(checkpoint['perception_model'])
-    control_model.load_state_dict(checkpoint['ncp_model'])
+    # checkpoint = torch.load(checkpoint_path, map_location=device)
+    # perception_model.load_state_dict(checkpoint['perception_model'])
+    # control_model.load_state_dict(checkpoint['ncp_model'])
 
     return perception_model.eval().to(device), control_model.eval().to(device)
 

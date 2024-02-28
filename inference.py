@@ -186,9 +186,10 @@ def run_closed_loop():
             img = process_img(image_queue.get(), int(config["cam_w"]), int(config["cam_h"])).to(device)
 
             # For the first 10 ticks, use autopilot to control the car
-            if autopilot_counter < 100:
+            if autopilot_counter < 10:
                 ego_car.set_autopilot(True)
-                print("autopilot", end='\r', flush=True)
+                controls = ego_car.get_control()
+                print(f"Autopilot: Steer: {controls.steer:.4f} | Throttle: {controls.throttle:.4f} | Brake: {controls.brake:.4f}", end='\r', flush=True)
             else:
                 ego_car.set_autopilot(False)
 
@@ -203,13 +204,16 @@ def run_closed_loop():
                 # Extract steering, throttle, and brake values
                 if config["control_outputs"] == 3:
                     steer, throttle, brake = controls
-                    if brake < 0.5:
+                    # Raw brake values are often close to zero but not exactly zero, which could hinder the car's movement
+                    if brake < 0.3 or throttle > brake:
                         brake = 0.0
+                    if throttle < 0.1:
+                        throttle = 0.0
 
                 elif config["control_outputs"] == 1:
                     steer, throttle, brake = controls[0], 0.4, 0.0
 
-                print(f"Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
+                print(f"Model: Steer: {steer:.4f} | Throttle: {throttle:.4f} | Brake: {brake:.4f}", end='\r', flush=True)
 
                 # Apply model output to control the ego car
                 control_command = carla.VehicleControl(steer=float(steer),

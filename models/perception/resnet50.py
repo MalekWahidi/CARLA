@@ -1,13 +1,13 @@
 import torch.nn as nn
 import torchvision.models as models
 import torchsummary
-
+from torchvision.models.resnet import ResNet50_Weights
 
 class ResNet50(nn.Module):
     def __init__(self, n_features=128):
         super().__init__()
         # Load a pre-trained (or not) ResNet-50 model
-        self.resnet50 = models.resnet50(weights=None, num_classes=n_features)
+        self.resnet50 = models.resnet50(weights=ResNet50_Weights.DEFAULT, num_classes=n_features)
         
     def forward(self, x):
         # X is a batch of videos with shape: [batches, sequences, channels, height, width]
